@@ -1,0 +1,123 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.11.3",
+  "planned_values": {
+    "outputs": { "ecr_uri": { "sensitive": false } },
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_ecr_repository.scrooge_ecr",
+          "mode": "managed",
+          "type": "aws_ecr_repository",
+          "name": "scrooge_ecr",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {
+            "encryption_configuration": [],
+            "force_delete": null,
+            "image_scanning_configuration": [{ "scan_on_push": true }],
+            "image_tag_mutability": "MUTABLE",
+            "image_tag_mutability_exclusion_filter": [],
+            "name": "scrooge-ecr",
+            "region": "ap-southeast-1",
+            "tags": null,
+            "timeouts": null
+          },
+          "sensitive_values": {
+            "encryption_configuration": [],
+            "image_scanning_configuration": [{}],
+            "image_tag_mutability_exclusion_filter": [],
+            "tags_all": {}
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_ecr_repository.scrooge_ecr",
+      "mode": "managed",
+      "type": "aws_ecr_repository",
+      "name": "scrooge_ecr",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "encryption_configuration": [],
+          "force_delete": null,
+          "image_scanning_configuration": [{ "scan_on_push": true }],
+          "image_tag_mutability": "MUTABLE",
+          "image_tag_mutability_exclusion_filter": [],
+          "name": "scrooge-ecr",
+          "region": "ap-southeast-1",
+          "tags": null,
+          "timeouts": null
+        },
+        "after_unknown": {
+          "arn": true,
+          "encryption_configuration": [],
+          "id": true,
+          "image_scanning_configuration": [{}],
+          "image_tag_mutability_exclusion_filter": [],
+          "registry_id": true,
+          "repository_url": true,
+          "tags_all": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "encryption_configuration": [],
+          "image_scanning_configuration": [{}],
+          "image_tag_mutability_exclusion_filter": [],
+          "tags_all": {}
+        }
+      }
+    }
+  ],
+  "output_changes": {
+    "ecr_uri": {
+      "actions": ["create"],
+      "before": null,
+      "after_unknown": true,
+      "before_sensitive": false,
+      "after_sensitive": false
+    }
+  },
+  "configuration": {
+    "provider_config": {
+      "aws": {
+        "name": "aws",
+        "full_name": "registry.terraform.io/hashicorp/aws",
+        "expressions": { "region": { "constant_value": "ap-southeast-1" } }
+      }
+    },
+    "root_module": {
+      "outputs": {
+        "ecr_uri": {
+          "expression": {
+            "references": ["aws_ecr_repository.scrooge_ecr.repository_url", "aws_ecr_repository.scrooge_ecr"]
+          }
+        }
+      },
+      "resources": [
+        {
+          "address": "aws_ecr_repository.scrooge_ecr",
+          "mode": "managed",
+          "type": "aws_ecr_repository",
+          "name": "scrooge_ecr",
+          "provider_config_key": "aws",
+          "expressions": {
+            "image_scanning_configuration": [{ "scan_on_push": { "constant_value": true } }],
+            "name": { "constant_value": "scrooge-ecr" }
+          },
+          "schema_version": 0
+        }
+      ]
+    }
+  },
+  "relevant_attributes": [{ "resource": "aws_ecr_repository.scrooge_ecr", "attribute": ["repository_url"] }],
+  "timestamp": "2025-08-31T13:04:05Z",
+  "applyable": true,
+  "complete": true,
+  "errored": false
+}
