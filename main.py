@@ -2,6 +2,7 @@ import subprocess
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import tool
 from dotenv import load_dotenv
+from sseclient import SSEClient
 
 
 @tool
@@ -15,8 +16,7 @@ def run_conftest(config_path: str, policy_path: str) -> str:
     return output
 
 
-def main():
-    load_dotenv()
+def run_agent(config_path):
     agent = create_react_agent(
         model="openai:gpt-4.1-mini",
         tools=[run_conftest],
@@ -51,5 +51,17 @@ def main():
     ):
         step["messages"][-1].pretty_print()
 
+
+def main():
+    load_dotenv()
+
+    # https://pypi.org/project/sseclient
+
+    messages = SSEClient("http://localhost:4000/sse")
+
+    for msg in messages:
+        if msg.data != "":
+            print("Data: ", msg.data)
+            run_agent(msg.data)
 
 main()
