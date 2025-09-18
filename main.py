@@ -39,17 +39,17 @@ def main():
                 "content": prompt,
             }
 
-            # events = graph.stream(
-            #     {
-            #         "messages": [input_message],
-            #     },
-            #     # Maximum number of steps to take in the graph
-            #     {"recursion_limit": 150},
-            #     stream_mode='values'
-            # )
-            # for s in events:
-            #     print(s["messages"][-1].pretty_print())
-            #     print("----")
+            events = graph.stream(
+                {
+                    "messages": [input_message],
+                },
+                # Maximum number of steps to take in the graph
+                {"recursion_limit": 150},
+                stream_mode='values'
+            )
+            for s in events:
+                print(s["messages"][-1].pretty_print())
+                print("----")
 
     messages.resp.close()
 
