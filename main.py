@@ -1,67 +1,56 @@
-import subprocess
-from langgraph.prebuilt import create_react_agent
-from langchain_core.tools import tool
+import json
+import os
 from dotenv import load_dotenv
+from langgraph.graph import START, MessagesState, StateGraph
 from sseclient import SSEClient
 
-
-@tool
-def run_conftest(config_path: str, policy_path: str) -> str:
-    """Runs a conftest on a config file against a opa policy file"""
-    result = subprocess.run(["conftest", "test", config_path, "--policy", policy_path], capture_output=True)
-    output = result.stdout.decode("utf-8")
-    print(output)
-    # output += result.stderr.decode("utf-8"), not needed since tool throwing error is handled by langchain
-
-    return output
-
-
-def run_agent(config_path):
-    agent = create_react_agent(
-        model="openai:gpt-4.1-mini",
-        tools=[run_conftest],
-        prompt="""
-            You are a helpful assistant that generates a recommended fix for a configuration with security vulnerabilities.
-            You are provided with the configuration file and the opa policy file directory that corresponds to this type of configuration.
-            You will use the run_conftest tool to determine what issues are present by passing in the configuration file path and the policy file path.
-        """,
-    )
-
-    input_message = {
-        "role": "user",
-        "content": """
-            This is the file content, which is located in sample-terraform/ecr.tf:
-
-            provider "aws" {
-              region = "ap-southeast-1"
-            }
-            resource "aws_ecr_repository" "scrooge_ecr" {
-              name                 = "scrooge-ecr"
-
-              image_scanning_configuration {
-                scan_on_push = true
-              }
-            }
-
-            What is the recommended changes for this file against the policy in policy/deny.rego?
-        """,
-    }
-    for step in agent.stream(
-        {"messages": [input_message]}, stream_mode="values"
-    ):
-        step["messages"][-1].pretty_print()
+load_dotenv()
+from agents.monitoring import monitoring_node
 
 
 def main():
-    load_dotenv()
 
-    # https://pypi.org/project/sseclient
+    workflow = StateGraph(MessagesState)
+    workflow.add_node("monitoring", monitoring_node)
+
+    workflow.add_edge(START, "monitoring")
+    graph = workflow.compile()
 
     messages = SSEClient("http://localhost:4000/sse")
 
     for msg in messages:
         if msg.data != "":
-            print("Data: ", msg.data)
-            run_agent(msg.data)
+            # print("Data: ", msg.data)
+            data = json.loads(msg.data)
+
+            if not os.path.isdir("tmp"):
+                os.mkdir("tmp")
+            with open(f"tmp/{data['filename']}", "w") as f: # TODO: security vulnerability
+                f.write(data['content'])
+
+            prompt = "This is the file content:\n"
+            prompt += data["content"]
+            prompt += "What are the recommended changes for this file \"ecr.tf\" against the policy in policy/deny.rego?"
+
+            # print(prompt)
+
+            input_message = {
+                "role": "user",
+                "content": prompt,
+            }
+
+            # events = graph.stream(
+            #     {
+            #         "messages": [input_message],
+            #     },
+            #     # Maximum number of steps to take in the graph
+            #     {"recursion_limit": 150},
+            #     stream_mode='values'
+            # )
+            # for s in events:
+            #     print(s["messages"][-1].pretty_print())
+            #     print("----")
+
+    messages.resp.close()
 
 main()
