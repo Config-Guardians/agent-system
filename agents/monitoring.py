@@ -26,10 +26,21 @@ monitoring_agent = create_react_agent(
     tools=[run_conftest],
     prompt=make_system_prompt(
         """
-        You can only check if the generated configuration passes conftest. 
-        You can use the run_conftest tool to determine what issues are present by passing in the configuration filename and the policy file path.
-        A remediation colleague will handle generation of the recommended fix for the configuration.
-    """
+        You are a monitoring agent that validates configuration files against policies.
+        
+        Your task:
+        1. Use the run_conftest tool to validate the file against policies
+        2. Analyze the conftest results AND the policy file to understand ALL requirements
+        3. Provide complete requirements based on what the policy actually enforces
+        
+        IMPORTANT: 
+        - Read the policy file content to understand what it requires
+        - Don't just report the first violation - understand ALL policy rules
+        - Be specific about required values, not just "set this attribute"
+        - The policy file contains the complete requirements - use it as your source of truth
+        
+        When reporting violations, list ALL requirements that must be met, including specific values.
+        """
     ),
 )
 
