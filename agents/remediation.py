@@ -2,6 +2,7 @@ import subprocess
 import json
 import os
 import re
+from datetime import datetime
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.graph import MessagesState, END
@@ -48,6 +49,18 @@ def get_violations_from_state(state: MessagesState) -> str:
     return ""
 
 
+def get_filename_from_state(state: MessagesState) -> str:
+    """Extract filename from the conversation state"""
+    for message in reversed(state["messages"]):
+        if "What are the recommended changes for this file" in message.content:
+            # Extract filename from the prompt
+            import re
+            match = re.search(r'for this file "([^"]+)"', message.content)
+            if match:
+                return match.group(1)
+    raise ValueError("Could not extract filename from conversation state. Make sure the prompt includes the filename.")
+
+
 def remediation_node(state: MessagesState):
     # Let the LLM generate the patch
     result = remediation_agent.invoke(state)
@@ -60,8 +73,8 @@ def remediation_node(state: MessagesState):
     # The LLM response should be the patched content directly
     patched_content = llm_response.strip()
     
-    # Get filename from the original content
-    filename = "ecr.tf"  # This should come from your main.py context
+    # Get filename from the conversation state
+    filename = get_filename_from_state(state)
     base_name = os.path.splitext(filename)[0]
     extension = os.path.splitext(filename)[1]
     patched_filename = f"{base_name}_patched{extension}"
@@ -96,7 +109,7 @@ def remediation_node(state: MessagesState):
         "violations_found": violations,
         "validation_results": validation_output,
         "status": "pending_approval",
-        "timestamp": "2024-01-01T00:00:00Z"
+        "timestamp": datetime.now().isoformat() + "Z"
     }
     
     try:
