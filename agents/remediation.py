@@ -11,19 +11,33 @@ from langgraph.types import Command
 from .graph import get_next_node, make_system_prompt
 
 
+@tool
+def read_policy_file(policy_path: str) -> str:
+    """Reads a policy file and returns its content"""
+    try:
+        with open(policy_path, "r") as f:
+            return f.read()
+    except Exception as e:
+        return f"Error reading policy file: {str(e)}"
+
+
 remediation_agent = create_react_agent(
     model="openai:gpt-4.1-mini",
-    tools=[],  # No tools - just pure LLM generation
+    tools=[read_policy_file],
     prompt=make_system_prompt(
         """
         You are a remediation agent responsible for fixing configuration file policy violations.
         
         Your task:
-        1. Analyze the monitoring agent's findings (violations and recommendations)
-        2. Generate the complete patched file content that fixes ALL policy violations
-        3. Return ONLY the patched content - no explanations, no markdown, just the raw file content
+        1. Use the read_policy_file tool to read the policy file (usually "policy/deny.rego")
+        2. Analyze the monitoring agent's findings (violations and recommendations)
+        3. Compare the original file content against the policy requirements
+        4. Generate the complete patched file content that fixes ALL policy violations
+        5. Return ONLY the patched content - no explanations, no markdown, just the raw file content
         
-        IMPORTANT: Return ONLY the patched file content. Do not include any explanations, markdown formatting, or additional text.
+        IMPORTANT: 
+        - Always read the policy file first to understand the exact requirements
+        - Return ONLY the patched file content. Do not include any explanations, markdown formatting, or additional text.
         """
     ),
 )
