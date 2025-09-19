@@ -23,21 +23,19 @@ def read_policy_file(policy_path: str) -> str:
 
 remediation_agent = create_react_agent(
     model="openai:gpt-4.1-mini",
-    tools=[read_policy_file],
+    tools=[],
     prompt=make_system_prompt(
         """
         You are a remediation agent responsible for fixing configuration file policy violations.
         
         Your task:
-        1. Use the read_policy_file tool to read the policy file (usually "policy/deny.rego")
-        2. Analyze the monitoring agent's findings (violations and recommendations)
-        3. Compare the original file content against the policy requirements
-        4. Generate the complete patched file content that fixes ALL policy violations
-        5. Return ONLY the patched content - no explanations, no markdown, just the raw file content
+        1. Analyze the monitoring agent's findings (violations and recommendations)
+        2. Compare the original file content against the policy requirements
+        3. Generate the complete patched file content that fixes ALL policy violations
+        4. Return ONLY the patched content - no explanations, no markdown, just the raw file content
         
         IMPORTANT: 
         - Always read the policy file first to understand the exact requirements
-        - Return ONLY the patched file content. Do not include any explanations, markdown formatting, or additional text.
         """
     ),
 )
@@ -142,6 +140,7 @@ Validation: {validation_output.strip() if validation_output.strip() else 'PASSED
 
 The patched file has been saved and validated. An approval request has been generated for the next service."""
     
+    goto = get_next_node(result["messages"][-1], "monitoring")
     result["messages"][-1] = HumanMessage(
         content=summary,
         name="remediation"
@@ -149,5 +148,5 @@ The patched file has been saved and validated. An approval request has been gene
     
     return Command(
         update={"messages": result["messages"]},
-        goto=END,
+        goto=goto,
     )

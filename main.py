@@ -16,8 +16,6 @@ def main():
     workflow.add_node("remediation", remediation_node)
 
     workflow.add_edge(START, "monitoring")
-    workflow.add_edge("monitoring", "remediation")
-    workflow.add_edge("remediation", END)
     graph = workflow.compile()
 
     messages = SSEClient("http://localhost:4000/sse")
@@ -47,7 +45,7 @@ def main():
                 {
                     "messages": [input_message],
                 },
-                {"recursion_limit": 150},
+                {"recursion_limit": 20},
                 stream_mode='values'
             )
             for s in events:
