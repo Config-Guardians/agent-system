@@ -73,6 +73,30 @@ def get_filename_from_state(state: MessagesState) -> str:
     raise ValueError("Could not extract filename from conversation state. Make sure the prompt includes the filename.")
 
 
+def parse_validation_output(validation_output: str) -> dict:
+    """Parse conftest validation output to extract test statistics"""
+    lines = validation_output.strip().split('\n')
+    test_summary = None
+    
+    for line in lines:
+        if "tests," in line and "passed" in line:
+            clean_line = re.sub(r'\x1b\[[0-9;]*m', '', line)
+            # Extract numbers from clean line like "4 tests, 3 passed, 0 warnings, 1 failure, 0 exceptions"
+            numbers = re.findall(r'\d+', clean_line)
+            
+            if len(numbers) >= 5:
+                test_summary = {
+                    "total_tests": int(numbers[0]),
+                    "passed": int(numbers[1]),
+                    "warnings": int(numbers[2]),
+                    "failures": int(numbers[3]),
+                    "exceptions": int(numbers[4])
+                }
+            break
+    
+    return test_summary or {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
+
+
 def analyze_changes(original_content: str, patched_content: str) -> dict:
     """Analyze changes between original and patched content"""
     changes_detail = []
@@ -105,6 +129,8 @@ def analyze_changes(original_content: str, patched_content: str) -> dict:
 
 
 def remediation_node(state: MessagesState):
+    remediation_start = datetime.now()
+    
     # Extract information from the conversation
     original_content = get_original_content_from_state(state)
     violations = get_violations_from_state(state)
@@ -121,9 +147,11 @@ def remediation_node(state: MessagesState):
         
         # Count violations in original file
         violations_detected = original_validation_output.count("FAIL") if "FAIL" in original_validation_output else 0
+        original_test_summary = parse_validation_output(original_validation_output)
     except Exception as e:
         original_validation_output = f"Error validating original file: {str(e)}"
         violations_detected = 0
+        original_test_summary = {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
         print(original_validation_output)
     
     # Let the LLM generate the patch
@@ -154,12 +182,18 @@ def remediation_node(state: MessagesState):
         )
         validation_output = validation_result.stdout.decode("utf-8")
         print(f"Patch validation result: {validation_output}")
+        patched_test_summary = parse_validation_output(validation_output)
     except Exception as e:
         validation_output = f"Error validating patch: {str(e)}"
+        patched_test_summary = {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
         print(validation_output)
     
     # Analyze changes between original and patched content
     changes_summary = analyze_changes(original_content, patched_content)
+    
+    # Track timing
+    remediation_end = datetime.now()
+    total_duration = (remediation_end - remediation_start).total_seconds()
     
     # Create approval request
     approval_data = {
@@ -173,6 +207,22 @@ def remediation_node(state: MessagesState):
         "changes_summary": changes_summary,
         "violations_analysis": {
             "raw_violations": violations
+        },
+        "validation_details": {
+            "original_file_validation": original_validation_output,
+            "patched_file_validation": validation_output,
+            "original_tests_summary": original_test_summary,
+            "patched_tests_summary": patched_test_summary
+        },
+        "policy_details": {
+            "policy_file": "policy/deny.rego",
+            "specific_rule": "ECR repository must have image tag mutability set",
+            "required_value": "IMMUTABLE"
+        },
+        "timing": {
+            "remediation_start_time": remediation_start.isoformat() + "Z",
+            "remediation_end_time": remediation_end.isoformat() + "Z",
+            "total_duration_seconds": round(total_duration, 2)
         }
     }
     
