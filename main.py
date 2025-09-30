@@ -1,6 +1,7 @@
 import json
 import os
 from dotenv import load_dotenv
+from langchain_core.messages import AnyMessage, HumanMessage
 from langgraph.graph import START, MessagesState, StateGraph, END
 from sseclient import SSEClient
 
@@ -28,30 +29,26 @@ def main():
 
     try:
         for msg in messages:
-            if msg.data != "":
-                # print("Data: ", msg.data)
+            if msg.data:
                 data = json.loads(msg.data)
+                file = data["data"]
+                filename = file['path'].split("/")[-1]
+                print(file['path'])
+                if not file['path'] == 'infra/modules/storage/main.tf':
+                    continue
 
                 if not os.path.isdir("tmp"):
                     os.mkdir("tmp")
-                with open(f"tmp/{data['filename']}", "w") as f: # TODO: security vulnerability
-                    f.write(data['content'])
+                with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
+                    f.write(file['content'])
 
                 prompt = "This is the file content:\n"
-                prompt += data["content"]
-                prompt += f"What are the recommended changes for this file \"{data['filename']}\" against the policy in policy/deny-s3.rego?"
+                prompt += file["content"]
+                prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in policy/deny-s3.rego?"
 
-                # print(prompt)
-
-                input_message = {
-                    "role": "user",
-                    "content": prompt,
-                }
-
-                events = graph.stream(
-                    {
-                        "messages": [input_message],
-                    },
+                message = HumanMessage(prompt)
+                msg_state = MessagesState(messages=[message])
+                events = graph.stream(msg_state,
                     {"recursion_limit": 20},
                     stream_mode='values'
                 )
