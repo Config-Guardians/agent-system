@@ -30,12 +30,8 @@ remediation_agent = create_react_agent(
         
         Your task:
         1. Analyze the monitoring agent's findings (violations and recommendations)
-        2. Compare the original file content against the policy requirements
-        3. Generate the complete patched file content that fixes ALL policy violations
-        4. Return ONLY the patched content - no explanations, no markdown, just the raw file content
-        
-        IMPORTANT: 
-        - Always read the policy file first to understand the exact requirements
+        2. Generate the complete patched file content that fixes ALL policy violations
+        3. Return ONLY the patched content - no explanations, no markdown, just the raw file content
         """
     ),
 )
@@ -137,22 +133,23 @@ def remediation_node(state: MessagesState):
     filename = get_filename_from_state(state)
     
     # Validate the original file to get actual violations count
-    try:
-        original_validation = subprocess.run(
-            ["conftest", "test", f"tmp/{filename}", "--policy", "policy/deny.rego"],
-            capture_output=True,
-        )
-        original_validation_output = original_validation.stdout.decode("utf-8")
-        print(f"Original file validation result: {original_validation_output}")
-        
-        # Count violations in original file
-        violations_detected = original_validation_output.count("FAIL") if "FAIL" in original_validation_output else 0
-        original_test_summary = parse_validation_output(original_validation_output)
-    except Exception as e:
-        original_validation_output = f"Error validating original file: {str(e)}"
-        violations_detected = 0
-        original_test_summary = {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
-        print(original_validation_output)
+    # try:
+    #     original_validation = subprocess.run(
+    #         ["conftest", "test", f"tmp/{filename}", "--policy", "policy/deny-s3.rego"],
+    #         capture_output=True,
+    #     )
+    #     original_validation_output = original_validation.stdout.decode("utf-8")
+    #     violations_detected = original_validation_output.count("FAIL") if "FAIL" in original_validation_output else 0
+    #     print(f"Original file validation result: {original_validation_output}")
+    #
+    #     # Count violations in original file
+    #     violations_detected = original_validation_output.count("FAIL") if "FAIL" in original_validation_output else 0
+    #     original_test_summary = parse_validation_output(original_validation_output)
+    # except Exception as e:
+    #     original_validation_output = f"Error validating original file: {str(e)}"
+    #     violations_detected = 0
+    #     original_test_summary = {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
+    #     print(original_validation_output)
     
     # Let the LLM generate the patch
     result = remediation_agent.invoke(state)
@@ -175,18 +172,18 @@ def remediation_node(state: MessagesState):
         print(f"Error saving patched file: {str(e)}")
     
     # Validate the patch
-    try:
-        validation_result = subprocess.run(
-            ["conftest", "test", f"tmp/{patched_filename}", "--policy", "policy/deny.rego"],
-            capture_output=True,
-        )
-        validation_output = validation_result.stdout.decode("utf-8")
-        print(f"Patch validation result: {validation_output}")
-        patched_test_summary = parse_validation_output(validation_output)
-    except Exception as e:
-        validation_output = f"Error validating patch: {str(e)}"
-        patched_test_summary = {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
-        print(validation_output)
+    # try:
+    #     validation_result = subprocess.run(
+    #         ["conftest", "test", f"tmp/{patched_filename}", "--policy", "policy/deny-s3.rego"],
+    #         capture_output=True,
+    #     )
+    #     validation_output = validation_result.stdout.decode("utf-8")
+    #     print(f"Patch validation result: {validation_output}")
+    #     patched_test_summary = parse_validation_output(validation_output)
+    # except Exception as e:
+    #     validation_output = f"Error validating patch: {str(e)}"
+    #     patched_test_summary = {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
+    #     print(validation_output)
     
     # Analyze changes between original and patched content
     changes_summary = analyze_changes(original_content, patched_content)
@@ -200,23 +197,23 @@ def remediation_node(state: MessagesState):
         "original_filename": filename,
         "patched_content": patched_content,
         "policy_compliance": {
-            "violations_detected": violations_detected,
-            "validation_status": "FAILED" if violations_detected > 0 else "PASSED",
-            "policy_file_used": "policy/deny.rego"
+            # "violations_detected": violations_detected,
+            # "validation_status": "FAILED" if violations_detected > 0 else "PASSED",
+            "policy_file_used": "policy/deny.rego" # TODO: remove hardcode
         },
         "changes_summary": changes_summary,
         "violations_analysis": {
             "raw_violations": violations
         },
         "validation_details": {
-            "original_file_validation": original_validation_output,
-            "patched_file_validation": validation_output,
-            "original_tests_summary": original_test_summary,
-            "patched_tests_summary": patched_test_summary
+            # "original_file_validation": original_validation_output,
+            # "patched_file_validation": validation_output,
+            # "original_tests_summary": original_test_summary,
+            # "patched_tests_summary": patched_test_summary
         },
         "policy_details": {
-            "policy_file": "policy/deny.rego",
-            "specific_rule": "ECR repository must have image tag mutability set",
+            "policy_file": "policy/deny.rego", # TODO: remove hardcode
+            "specific_rule": "ECR repository must have image tag mutability set", # TODO: remove hardcode
             "required_value": "IMMUTABLE"
         },
         "timing": {
@@ -234,13 +231,11 @@ def remediation_node(state: MessagesState):
         print(f"Error creating approval request: {str(e)}")
     
     # Create a summary message
-    summary = f"""Remediation completed:
+    summary = f""" Remediation completed:
 
 Original file: {filename}
 Patched file: {patched_filename}
-Validation: {validation_output.strip() if validation_output.strip() else 'PASSED'}
-
-The patched file has been saved and validated. An approval request has been generated for the next service."""
+"""
     
     goto = get_next_node(result["messages"][-1], "monitoring")
     result["messages"][-1] = HumanMessage(

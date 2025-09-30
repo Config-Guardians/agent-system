@@ -32,7 +32,7 @@ def main():
 
             prompt = "This is the file content:\n"
             prompt += data["content"]
-            prompt += f"What are the recommended changes for this file \"{data['filename']}\" against the policy in policy/deny.rego?"
+            prompt += f"What are the recommended changes for this file \"{data['filename']}\" against the policy in policy/deny-s3.rego?"
 
             # print(prompt)
 

@@ -24,11 +24,10 @@ def run_conftest(filename: str, policy_path: str) -> str:
 monitoring_agent = create_react_agent(
     model="openai:gpt-4.1-mini",
     tools=[run_conftest],
-    prompt=make_system_prompt(
-        """
-        You can only check if the generated configuration passes conftest. 
+    prompt=make_system_prompt("""
+        You will only check if the generated configuration passes conftest by using the provided filename.
         You can use the run_conftest tool to determine what issues are present by passing in the configuration filename and the policy file path.
-        A remediation colleague will handle generation of the recommended fix for the configuration.
+        Do not generate anything; A remediation colleague will handle generation of the recommended fix for the configuration.
     """
     ),
 )
