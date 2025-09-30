@@ -20,39 +20,41 @@ def main():
 
     messages = SSEClient("http://localhost:4000/sse")
 
-    for msg in messages:
-        if msg.data != "":
-            # print("Data: ", msg.data)
-            data = json.loads(msg.data)
+    try:
+        for msg in messages:
+            if msg.data != "":
+                # print("Data: ", msg.data)
+                data = json.loads(msg.data)
 
-            if not os.path.isdir("tmp"):
-                os.mkdir("tmp")
-            with open(f"tmp/{data['filename']}", "w") as f: # TODO: security vulnerability
-                f.write(data['content'])
+                if not os.path.isdir("tmp"):
+                    os.mkdir("tmp")
+                with open(f"tmp/{data['filename']}", "w") as f: # TODO: security vulnerability
+                    f.write(data['content'])
 
-            prompt = "This is the file content:\n"
-            prompt += data["content"]
-            prompt += f"What are the recommended changes for this file \"{data['filename']}\" against the policy in policy/deny-s3.rego?"
+                prompt = "This is the file content:\n"
+                prompt += data["content"]
+                prompt += f"What are the recommended changes for this file \"{data['filename']}\" against the policy in policy/deny-s3.rego?"
 
-            # print(prompt)
+                # print(prompt)
 
-            input_message = {
-                "role": "user",
-                "content": prompt,
-            }
+                input_message = {
+                    "role": "user",
+                    "content": prompt,
+                }
 
-            events = graph.stream(
-                {
-                    "messages": [input_message],
-                },
-                {"recursion_limit": 20},
-                stream_mode='values'
-            )
-            for s in events:
-                print(s["messages"][-1].pretty_print())
-                print("----")
-
-    messages.resp.close()
+                events = graph.stream(
+                    {
+                        "messages": [input_message],
+                    },
+                    {"recursion_limit": 20},
+                    stream_mode='values'
+                )
+                for s in events:
+                    print(s["messages"][-1].pretty_print())
+                    print("----")
+    except KeyboardInterrupt:
+        print("Interrupt detected, terminating gracefully")
+        messages.resp.close()
 
     # COMMENTED OUT: Sample terraform usage (uncomment when needed)
     # sample_file = "sample-terraform/ecr.tf"
