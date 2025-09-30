@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from langgraph.graph import START, MessagesState, StateGraph, END
 from sseclient import SSEClient
 
+from agents.reporting import generate_report
+
 load_dotenv()
 from agents.monitoring import monitoring_node
 from agents.remediation import remediation_node
@@ -18,7 +20,11 @@ def main():
     workflow.add_edge(START, "monitoring")
     graph = workflow.compile()
 
-    messages = SSEClient("http://localhost:4000/sse")
+    hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
+    if not hachiware_endpoint:
+        raise ValueError("Missing HACHIWARE_ENDPOINT env var")
+
+    messages = SSEClient(f"http://{hachiware_endpoint}/sse")
 
     try:
         for msg in messages:
@@ -49,9 +55,14 @@ def main():
                     {"recursion_limit": 20},
                     stream_mode='values'
                 )
+                final_state = None
                 for s in events:
                     print(s["messages"][-1].pretty_print())
                     print("----")
+                    final_state = s
+
+                if final_state:
+                    generate_report(final_state["messages"])
     except KeyboardInterrupt:
         print("Interrupt detected, terminating gracefully")
         messages.resp.close()
