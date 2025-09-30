@@ -8,16 +8,6 @@ from langgraph.types import Command
 from .graph import get_next_node, make_system_prompt
 
 
-@tool
-def read_policy_file(policy_path: str) -> str:
-    """Reads a policy file and returns its content"""
-    try:
-        with open(policy_path, "r") as f:
-            return f.read()
-    except Exception as e:
-        return f"Error reading policy file: {str(e)}"
-
-
 remediation_agent = create_react_agent(
     model="openai:gpt-4.1-mini",
     tools=[],
