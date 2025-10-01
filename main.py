@@ -23,7 +23,7 @@ hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
 if not hachiware_endpoint:
     raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
-messages = SSEClient(f"{hachiware_endpoint}/sse")
+messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
 
 print("Waiting for hachiware...")
 try:
