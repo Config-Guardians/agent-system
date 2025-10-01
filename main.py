@@ -25,7 +25,7 @@ if not hachiware_endpoint:
 
 messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
 
-print("Waiting for hachiware...")
+print("Agent system started")
 try:
     for msg in messages:
         if msg.data:
