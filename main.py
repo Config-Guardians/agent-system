@@ -1,8 +1,8 @@
 import json
 import os
 from dotenv import load_dotenv
-from langchain_core.messages import AnyMessage, HumanMessage
-from langgraph.graph import START, MessagesState, StateGraph, END
+from langchain_core.messages import HumanMessage
+from langgraph.graph import START, MessagesState, StateGraph
 from sseclient import SSEClient
 
 from agents.reporting import generate_report
@@ -25,7 +25,7 @@ def main():
     if not hachiware_endpoint:
         raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
-    messages = SSEClient(f"http://{hachiware_endpoint}/sse")
+    messages = SSEClient(f"{hachiware_endpoint}/sse")
 
     try:
         for msg in messages:

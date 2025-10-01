@@ -1,8 +1,9 @@
-from datetime import datetime
 import os
 import re
 import json
+import requests
 
+from datetime import datetime
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.graph import MessagesState
 
@@ -136,6 +137,13 @@ def generate_report(messages: list[MessagesState]):
             "total_duration_seconds": round(total_duration, 2)
         }
     }
+
+    hachiware_endpoint = os.getenv("HACHIWARE_ENDPOINT")
+    if not hachiware_endpoint:
+        raise ValueError("Missing HACHIWARE_ENDPOINT env var")
+
+    res = requests.post(f'{hachiware_endpoint}/api/report', json={ "data": { "attributes": approval_data }}, headers={"Content-Type": "application/vnd.api+json"})
+    print(res.json())
 
     try:
         with open("tmp/approval_request.json", "w") as f:
