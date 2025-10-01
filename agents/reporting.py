@@ -142,12 +142,16 @@ def generate_report(messages: list[MessagesState]):
     if not hachiware_endpoint:
         raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
-    res = requests.post(f'{hachiware_endpoint}/api/report', json={ "data": { "attributes": approval_data }}, headers={"Content-Type": "application/vnd.api+json"})
-    print(res.json())
+    res = requests.post(f'{hachiware_endpoint}/api/report', 
+        json={ "data": { "attributes": approval_data }}, 
+        headers={"Content-Type": "application/vnd.api+json"}
+    )
+    if res.status_code >= 400:
+        print(res.json())
 
-    try:
-        with open("tmp/approval_request.json", "w") as f:
-            json.dump(approval_data, f, indent=2)
-        print("Approval request generated")
-    except Exception as e:
-        print(f"Error creating approval request: {str(e)}")
+    # try:
+    #     with open("tmp/approval_request.json", "w") as f:
+    #         json.dump(approval_data, f, indent=2)
+    #     print("Approval request generated")
+    # except Exception as e:
+    #     print(f"Error creating approval request: {str(e)}")
