@@ -66,7 +66,7 @@ def parse_validation_output(validation_output: str) -> dict:
     
     return test_summary or {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
 
-def generate_report(messages: list[MessagesState]):
+def generate_report(remediation_start: datetime, messages: list[MessagesState]):
 
     ai_messages = []
     tool_messages = []
@@ -85,7 +85,6 @@ def generate_report(messages: list[MessagesState]):
     extension = os.path.splitext(filename)[1]
     patched_filename = f"{base_name}_patched{extension}"
 
-    remediation_start = datetime.now()
 
     patched_content = None
     with open(f"tmp/{patched_filename}", "r") as f:

@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 from langgraph.graph import START, MessagesState, StateGraph
@@ -29,6 +30,8 @@ print("Agent system started")
 try:
     for msg in messages:
         if msg.data:
+            remediation_start = datetime.now()
+
             data = json.loads(msg.data)
             file = data["data"]
             filename = file['path'].split("/")[-1]
@@ -58,7 +61,7 @@ try:
                 final_state = s
 
             if final_state:
-                generate_report(final_state["messages"])
+                generate_report(remediation_start, final_state["messages"])
 except KeyboardInterrupt:
     print("Interrupt detected, terminating gracefully")
     messages.resp.close()
