@@ -13,8 +13,7 @@ def run_conftest(filename: str, policy_path: str) -> str:
     """Runs a conftest on a configuration with a filename against a opa policy file"""
     result = subprocess.run(
         ["conftest", "test", f"tmp/{filename}", "--policy", policy_path],
-        capture_output=True,
-        shell=True
+        capture_output=True
     )
     output = result.stdout.decode("utf-8")
     print(output)
