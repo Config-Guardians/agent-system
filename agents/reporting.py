@@ -117,10 +117,10 @@ def generate_report(remediation_start: datetime, messages: list[MessagesState], 
         },
         "changes_summary": changes_summary,
         "violations_analysis": {
-            "raw_violations": original_validation_output.replace(filename, remote_filename)
+            "raw_violations": original_validation_output.replace(f'tmp/{filename}', remote_filename)
         },
         "validation_details": {
-            "original_file_validation": original_validation_output.replace(filename, remote_filename),
+            "original_file_validation": original_validation_output.replace(f'tmp/{filename}', remote_filename),
             "patched_file_validation": validation_output,
             "original_tests_summary": original_test_summary,
             "patched_tests_summary": patched_test_summary
