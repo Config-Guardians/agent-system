@@ -1,6 +1,5 @@
 import os
 import re
-import json
 import requests
 
 from datetime import datetime
@@ -66,7 +65,7 @@ def parse_validation_output(validation_output: str) -> dict:
     
     return test_summary or {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
 
-def generate_report(remediation_start: datetime, messages: list[MessagesState]):
+def generate_report(remediation_start: datetime, messages: list[MessagesState], remote_filename: str):
 
     ai_messages = []
     tool_messages = []
@@ -118,10 +117,10 @@ def generate_report(remediation_start: datetime, messages: list[MessagesState]):
         },
         "changes_summary": changes_summary,
         "violations_analysis": {
-            "raw_violations": original_validation_output
+            "raw_violations": original_validation_output.replace(filename, remote_filename)
         },
         "validation_details": {
-            "original_file_validation": original_validation_output,
+            "original_file_validation": original_validation_output.replace(filename, remote_filename),
             "patched_file_validation": validation_output,
             "original_tests_summary": original_test_summary,
             "patched_tests_summary": patched_test_summary

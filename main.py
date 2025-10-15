@@ -61,7 +61,7 @@ try:
                 final_state = s
 
             if final_state:
-                generate_report(remediation_start, final_state["messages"])
+                generate_report(remediation_start, final_state["messages"], file['path'])
 except KeyboardInterrupt:
     print("Interrupt detected, terminating gracefully")
     messages.resp.close()
