@@ -7,7 +7,7 @@ from langgraph.graph import START, MessagesState, StateGraph
 from sseclient import SSEClient
 
 from agents.reporting import generate_report
-from utils import properties
+from utils import filetype
 
 load_dotenv()
 from agents.monitoring import monitoring_node
@@ -66,13 +66,13 @@ try:
             with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
                 f.write(file_content)
 
-            if filename.split(".")[-1] == "properties":
-                filename_prefix = filename[:-(len("properties")+1)]
-                properties.prop2json(f"tmp/{filename}", f"tmp/{filename_prefix}.json")
-                with open(f"tmp/{filename_prefix}.json", "r") as f:
+            if os.path.splitext(filename)[1] == ".properties":
+                base_name = os.path.splitext(filename)[0]
+                filetype.prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
+                with open(f"tmp/{base_name}.json", "r") as f:
                     file_content = f.read()
 
-                filename = f"{filename_prefix}.json"
+                filename = f"{base_name}.json"
 
             remediation_start = datetime.now()
             final_state = run_agents(file_content, filename)

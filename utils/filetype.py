@@ -2,6 +2,14 @@ import json
 import sys
 import os
 
+def with_filetype_conversion(func):
+    def wrapper(*args, **kwargs):
+        print(args)
+        print(kwargs)
+        result = func(*args, **kwargs)
+        return result
+    return wrapper
+
 def prop2json(src, des):
     file_path = src
 
