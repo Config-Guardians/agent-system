@@ -6,8 +6,6 @@ from datetime import datetime
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.graph import MessagesState
 
-from utils.filetype import with_filetype_conversion
-
 def analyze_changes(original_filename: str, patched_filename: str) -> dict:
     """Analyze changes between original and patched content"""
 
@@ -67,7 +65,6 @@ def parse_validation_output(validation_output: str) -> dict:
     
     return test_summary or {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
 
-@with_filetype_conversion
 def generate_report(remediation_start: datetime, messages: list[MessagesState], remote_filename: str):
 
     ai_messages = []

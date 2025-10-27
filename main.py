@@ -7,7 +7,7 @@ from langgraph.graph import START, MessagesState, StateGraph
 from sseclient import SSEClient
 
 from agents.reporting import generate_report
-from utils import filetype
+from utils.filetype import with_filetype_conversion
 
 load_dotenv()
 from agents.monitoring import monitoring_node
@@ -25,6 +25,7 @@ hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
 if not hachiware_endpoint:
     raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
+@with_filetype_conversion
 def run_agents(contents, filename):
 
     prompt = "This is the file content:\n"
@@ -65,14 +66,6 @@ try:
                 os.mkdir("tmp")
             with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
                 f.write(file_content)
-
-            if os.path.splitext(filename)[1] == ".properties":
-                base_name = os.path.splitext(filename)[0]
-                filetype.prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
-                with open(f"tmp/{base_name}.json", "r") as f:
-                    file_content = f.read()
-
-                filename = f"{base_name}.json"
 
             remediation_start = datetime.now()
             final_state = run_agents(file_content, filename)

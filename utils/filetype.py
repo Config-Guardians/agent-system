@@ -4,9 +4,20 @@ import os
 
 def with_filetype_conversion(func):
     def wrapper(*args, **kwargs):
-        print(args)
-        print(kwargs)
-        result = func(*args, **kwargs)
+        file_content, filename = args
+        base_name = os.path.splitext(filename)[0]
+        extension = os.path.splitext(filename)[1]
+
+        match extension:
+            case ".properties":
+                prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
+                with open(f"tmp/{base_name}.json", "r") as f:
+                    file_content = f.read()
+
+                filename = f"{base_name}.json"
+
+        result = func(*(file_content, filename), **kwargs)
+
         return result
     return wrapper
 
