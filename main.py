@@ -7,6 +7,7 @@ from langgraph.graph import START, MessagesState, StateGraph
 from sseclient import SSEClient
 
 from agents.reporting import generate_report
+from utils import prop2json
 
 load_dotenv()
 from agents.monitoring import monitoring_node
@@ -24,44 +25,58 @@ hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
 if not hachiware_endpoint:
     raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
+def run_agents(contents, filename, filepath):
+    remediation_start = datetime.now()
+
+    prompt = "This is the file content:\n"
+    prompt += contents
+    prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in policy/deny-application-properties.rego?"
+
+    message = HumanMessage(prompt)
+    msg_state = MessagesState(messages=[message])
+    events = graph.stream(msg_state,
+        {"recursion_limit": 20},
+        stream_mode='values'
+    )
+    final_state = None
+    for s in events:
+        print(s["messages"][-1].pretty_print())
+        print("----")
+        final_state = s
+
+    if final_state:
+        generate_report(remediation_start, final_state["messages"], filepath)
+
 messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
 
 print("Agent system started")
 try:
     for msg in messages:
         if msg.data:
-            remediation_start = datetime.now()
 
             data = json.loads(msg.data)
             file = data["data"]
             filename = file['path'].split("/")[-1]
             print(file['path'])
-            if not file['path'] == 'infra/modules/storage/main.tf':
+            if not file['path'] == 'src/main/resources/application.properties':
                 continue
+
 
             if not os.path.isdir("tmp"):
                 os.mkdir("tmp")
             with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
                 f.write(file['content'])
 
-            prompt = "This is the file content:\n"
-            prompt += file["content"]
-            prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in policy/deny-s3.rego?"
+            if filename.split(".")[-1] == "properties":
+                filename_prefix = filename[:-(len("properties")+1)]
+                prop2json.convert(f"tmp/{filename}", f"tmp/{filename_prefix}.json")
+                filename = f"{filename_prefix}.json"
 
-            message = HumanMessage(prompt)
-            msg_state = MessagesState(messages=[message])
-            events = graph.stream(msg_state,
-                {"recursion_limit": 20},
-                stream_mode='values'
-            )
-            final_state = None
-            for s in events:
-                print(s["messages"][-1].pretty_print())
-                print("----")
-                final_state = s
-
-            if final_state:
-                generate_report(remediation_start, final_state["messages"], file['path'])
+            run_agents(file['content'], filename, file['path'])
 except KeyboardInterrupt:
     print("Interrupt detected, terminating gracefully")
     messages.resp.close()
+#
+# with open("tmp/application.json", "r") as f:
+#     contents = f.read()
+#     run_agents(contents, "application.json", "utils/application.json")

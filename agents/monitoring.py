@@ -28,6 +28,7 @@ monitoring_agent = create_react_agent(
         You will only check if the generated configuration passes conftest by using the provided filename.
         You can use the run_conftest tool to determine what issues are present by passing in the configuration filename and the policy file path.
         Do not generate anything; A remediation colleague will handle generation of the recommended fix for the configuration.
+        You will use the run_conftest tool before you determine whether you have the final answer. Do not claim that you have the final answer without running the tool first.
     """
     ),
 )
