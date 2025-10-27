@@ -57,6 +57,7 @@ try:
             data = json.loads(msg.data)
             file = data["data"]
             filename = file['path'].split("/")[-1]
+            file_content = file['content']
             print(file['path'])
             if not file['path'] == 'src/main/resources/application.properties':
                 continue
@@ -65,14 +66,17 @@ try:
             if not os.path.isdir("tmp"):
                 os.mkdir("tmp")
             with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
-                f.write(file['content'])
+                f.write(file_content)
 
             if filename.split(".")[-1] == "properties":
                 filename_prefix = filename[:-(len("properties")+1)]
                 prop2json.convert(f"tmp/{filename}", f"tmp/{filename_prefix}.json")
+                with open(f"tmp/{filename_prefix}.json", "r") as f:
+                    file_content = f.read()
+
                 filename = f"{filename_prefix}.json"
 
-            run_agents(file['content'], filename, file['path'])
+            run_agents(file_content, filename, file['path'])
 except KeyboardInterrupt:
     print("Interrupt detected, terminating gracefully")
     messages.resp.close()

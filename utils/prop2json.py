@@ -21,5 +21,5 @@ def convert(src, des):
 
     des_content = json.dumps(props, indent=2)
 
-    with open(des) as f:
+    with open(des, "w") as f:
         f.write(des_content)
