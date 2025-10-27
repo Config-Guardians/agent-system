@@ -7,7 +7,7 @@ from langgraph.graph import START, MessagesState, StateGraph
 from sseclient import SSEClient
 
 from agents.reporting import generate_report
-from utils import prop2json
+from utils import properties
 
 load_dotenv()
 from agents.monitoring import monitoring_node
@@ -25,8 +25,7 @@ hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
 if not hachiware_endpoint:
     raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
-def run_agents(contents, filename, filepath):
-    remediation_start = datetime.now()
+def run_agents(contents, filename):
 
     prompt = "This is the file content:\n"
     prompt += contents
@@ -44,8 +43,7 @@ def run_agents(contents, filename, filepath):
         print("----")
         final_state = s
 
-    if final_state:
-        generate_report(remediation_start, final_state["messages"], filepath)
+    return final_state
 
 messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
 
@@ -70,13 +68,17 @@ try:
 
             if filename.split(".")[-1] == "properties":
                 filename_prefix = filename[:-(len("properties")+1)]
-                prop2json.convert(f"tmp/{filename}", f"tmp/{filename_prefix}.json")
+                properties.prop2json(f"tmp/{filename}", f"tmp/{filename_prefix}.json")
                 with open(f"tmp/{filename_prefix}.json", "r") as f:
                     file_content = f.read()
 
                 filename = f"{filename_prefix}.json"
 
-            run_agents(file_content, filename, file['path'])
+            remediation_start = datetime.now()
+            final_state = run_agents(file_content, filename)
+
+            if final_state:
+                generate_report(remediation_start, final_state["messages"], file['path'])
 except KeyboardInterrupt:
     print("Interrupt detected, terminating gracefully")
     messages.resp.close()
