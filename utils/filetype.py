@@ -2,21 +2,26 @@ import json
 import sys
 import os
 
+# converts filetypes for conftest compatibility
 def with_filetype_conversion(func):
     def wrapper(*args, **kwargs):
         file_content, filename = args
         base_name = os.path.splitext(filename)[0]
         extension = os.path.splitext(filename)[1]
 
+        # parsing file into conftest compatible filetype
         match extension:
             case ".properties":
-                prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
-                with open(f"tmp/{base_name}.json", "r") as f:
-                    file_content = f.read()
-
+                file_content = prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
                 filename = f"{base_name}.json"
 
         result = func(*(file_content, filename), **kwargs)
+
+        # parsing file back into original filetype
+        match extension:
+            case ".properties":
+                file_content = json2prop(f"tmp/{base_name}_patched.json", f"tmp/{base_name}_patched{extension}")
+                result["parsed_patched_content"] = file_content
 
         return result
     return wrapper
@@ -43,6 +48,7 @@ def prop2json(src, des):
     with open(des, "w") as f:
         f.write(des_content)
 
+    return des_content
 
 def json2prop(src, des):
     file_path = src
@@ -66,5 +72,8 @@ def json2prop(src, des):
         else:
             lines.append(f"{key}={value}")
 
+    des_content = "\n".join(lines)
     with open(des, "w") as f:
-        f.write("\n".join(lines))
+        f.write(des_content)
+
+    return des_content

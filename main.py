@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from typing import final
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 from langgraph.graph import START, MessagesState, StateGraph
@@ -26,7 +27,7 @@ if not hachiware_endpoint:
     raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
 @with_filetype_conversion
-def run_agents(contents, filename):
+def run_agents(contents: str, filename: str):
 
     prompt = "This is the file content:\n"
     prompt += contents
@@ -71,7 +72,11 @@ try:
             final_state = run_agents(file_content, filename)
 
             if final_state:
-                generate_report(remediation_start, final_state["messages"], file['path'])
+                generate_report(remediation_start, 
+                                final_state["messages"], 
+                                file['path'], 
+                                final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None
+                )
 except KeyboardInterrupt:
     print("Interrupt detected, terminating gracefully")
     messages.resp.close()

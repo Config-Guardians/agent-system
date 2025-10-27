@@ -1,5 +1,6 @@
 import os
 import re
+from typing import Optional
 import requests
 
 from datetime import datetime
@@ -65,7 +66,7 @@ def parse_validation_output(validation_output: str) -> dict:
     
     return test_summary or {"total_tests": 0, "passed": 0, "warnings": 0, "failures": 0, "exceptions": 0}
 
-def generate_report(remediation_start: datetime, messages: list[MessagesState], remote_filename: str):
+def generate_report(remediation_start: datetime, messages: list[MessagesState], remote_filename: str, parsed_patched_content: Optional[str] = None):
 
     ai_messages = []
     tool_messages = []
@@ -109,7 +110,7 @@ def generate_report(remediation_start: datetime, messages: list[MessagesState], 
     # Create approval request
     approval_data = {
         "original_filename": filename,
-        "patched_content": patched_content,
+        "patched_content": parsed_patched_content if parsed_patched_content else patched_content,
         "policy_compliance": {
             "violations_detected": violations_detected,
             "validation_status": "FAILED" if violations_detected > 0 else "PASSED",
