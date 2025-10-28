@@ -5,7 +5,7 @@ from langchain_core.tools import tool
 from langgraph.graph import MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command
-from .graph import get_next_node, make_system_prompt
+from .base import get_next_node, make_system_prompt
 
 
 remediation_agent = create_react_agent(
