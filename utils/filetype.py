@@ -5,7 +5,8 @@ import os
 # converts filetypes for conftest compatibility
 def with_filetype_conversion(func):
     def wrapper(*args, **kwargs):
-        file_content, filename = args
+        file_content = args[0]
+        filename = args[1]
         base_name = os.path.splitext(filename)[0]
         extension = os.path.splitext(filename)[1]
 
