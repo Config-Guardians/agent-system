@@ -5,8 +5,7 @@ import os
 # converts filetypes for conftest compatibility
 def with_filetype_conversion(func):
     def wrapper(*args, **kwargs):
-        file_content = args[0]
-        filename = args[1]
+        file_content, filename, policy_path = args
         base_name = os.path.splitext(filename)[0]
         extension = os.path.splitext(filename)[1]
 
@@ -16,7 +15,7 @@ def with_filetype_conversion(func):
                 file_content = prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
                 filename = f"{base_name}.json"
 
-        result = func(*(file_content, filename), **kwargs)
+        result = func(*(file_content, filename, policy_path), **kwargs)
 
         # parsing file back into original filetype
         match extension:
