@@ -10,7 +10,7 @@ def create_remediation_pr(
     base_branch: str = "main"
 ):
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-    GITHUB_REPO = os.getenv("GITHUB_REPO")  # e.g. "yourusername/yourrepo"
+    GITHUB_REPO = os.getenv("GITHUB_REPO")
     if not GITHUB_TOKEN or not GITHUB_REPO:
         print("GITHUB_TOKEN or GITHUB_REPO not set in environment.")
         return

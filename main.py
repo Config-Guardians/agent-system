@@ -160,7 +160,11 @@ if final_state:
                     final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
 
     print("\n--- Remediation Report ---")
-    print(json.dumps(approval_data, indent=2))
-    
-    # --- Create GitHub PR ---
-    create_remediation_pr(patched_file_path)
+    pr_body = (
+        "This PR contains automated security/configuration remediations.\n\n"
+        "## Remediation Report\n"
+        "```json\n"
+        f"{json.dumps(approval_data, indent=2)}\n"
+        "```"
+    )
+    create_remediation_pr(patched_file_path, pr_body=pr_body)
