@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.graph import START, MessagesState, StateGraph
 from sseclient import SSEClient
 
-from agents.command import command_node
+# from agents.command import command_node
 from utils.reporting import generate_report
 from utils.filetype import json2prop, prop2json, with_filetype_conversion
 
@@ -15,23 +15,89 @@ load_dotenv()
 from agents.monitoring import monitoring_node
 from agents.remediation import remediation_node
 
+from utils.github_pr import create_remediation_pr
 
 workflow = StateGraph(MessagesState)
 workflow.add_node("monitoring", monitoring_node)
 workflow.add_node("remediation", remediation_node)
-workflow.add_node("command", command_node)
+# workflow.add_node("command", command_node)
 
 workflow.add_edge(START, "monitoring")
 graph = workflow.compile()
 
 graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
 
-hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
-if not hachiware_endpoint:
-    raise ValueError("Missing HACHIWARE_ENDPOINT env var")
+# hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
+# if not hachiware_endpoint:
+#     raise ValueError("Missing HACHIWARE_ENDPOINT env var")
+#
+# messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
+#
+# print("Agent system started")
+# try:
+#     for msg in messages:
+#         if msg.data:
+#             data = json.loads(msg.data)
+#             match data['type']:
+#                 case "github_files":
+#                     file = data["data"]
+#                     filename = file['path'].split("/")[-1]
+#                     file_content = file['content']
+#                     print(file['path'])
+#                     if not file['path'] == 'src/main/resources/application.properties':
+#                         continue
+#
+#                     if not os.path.isdir("tmp"):
+#                         os.mkdir("tmp")
+#                     with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
+#                         f.write(file_content)
+#
+#                     remediation_start = datetime.now()
+#                     policy_path = "policy/deny-application-properties.rego"
+#
+#                     base_name = os.path.splitext(filename)[0]
+#                     extension = os.path.splitext(filename)[1]
+#
+#                     # parsing file into conftest compatible filetype
+#                     match extension:
+#                         case ".properties":
+#                             file_content = prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
+#                             filename = f"{base_name}.json"
+#
+#                     prompt = "This is the file content:\n"
+#                     prompt += file_content
+#                     prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
+#
+#                     final_state = run_agents(prompt)
+#
+#                     if final_state:
+#                         # parsing file back into original filetype
+#                         match extension:
+#                             case ".properties":
+#                                 file_content = json2prop(f"tmp/{base_name}_patched.json", f"tmp/{base_name}_patched{extension}")
+#                                 final_state["parsed_patched_content"] = file_content
+#
+#                         approval_data = generate_report(remediation_start,
+#                                         final_state["messages"],
+#                                         file['path'],
+#                                         final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
+#
+#                         res = requests.post(f'{hachiware_endpoint}/api/report', 
+#                             json={ "data": { "attributes": approval_data }}, 
+#                             headers={"Content-Type": "application/vnd.api+json"}
+#                         )
+#                         if res.status_code >= 400:
+#                             print(res.json())
+#
+#                 case case if case.startswith("aws"):
+#                     pass
+#
+# except KeyboardInterrupt:
+#     print("Interrupt detected, terminating gracefully")
+#     messages.resp.close()
+
 
 def run_agents(prompt: str):
-
     message = HumanMessage(prompt)
     msg_state = MessagesState(messages=[message])
     events = graph.stream(msg_state,
@@ -43,80 +109,54 @@ def run_agents(prompt: str):
         print(s["messages"][-1].pretty_print())
         print("----")
         final_state = s
-
     return final_state
 
-messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
+# --- Local file testing mode ---
+# Set the file you want to test here:
+test_file_path = "sample-configs/application.properties"  # Change this to any file you want to test
 
-print("Agent system started")
-try:
-    for msg in messages:
-        if msg.data:
-            data = json.loads(msg.data)
-            match data['type']:
-                case "github_files":
-                    file = data["data"]
-                    filename = file['path'].split("/")[-1]
-                    file_content = file['content']
-                    print(file['path'])
-                    if not file['path'] == 'src/main/resources/application.properties':
-                        continue
+if not os.path.isdir("tmp"):
+    os.mkdir("tmp")
 
-                    if not os.path.isdir("tmp"):
-                        os.mkdir("tmp")
-                    with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
-                        f.write(file_content)
+filename = os.path.basename(test_file_path)
+extension = os.path.splitext(filename)[1]
+remediation_start = datetime.now()
 
-                    remediation_start = datetime.now()
-                    policy_path = "policy/deny-application-properties.rego"
+with open(test_file_path, "r") as f:
+    file_content = f.read()
 
-                    base_name = os.path.splitext(filename)[0]
-                    extension = os.path.splitext(filename)[1]
+# parsing file into conftest compatible filetype
+match extension:
+    case ".properties":
+        file_content = prop2json(test_file_path, f"tmp/{os.path.splitext(filename)[0]}.json")
+        filename = f"{os.path.splitext(filename)[0]}.json"
+    case _:
+        pass  # Add more conversions if needed
 
-                    # parsing file into conftest compatible filetype
-                    match extension:
-                        case ".properties":
-                            file_content = prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
-                            filename = f"{base_name}.json"
+# Choose policy file based on extension or file type
+policy_path = "policy/deny-application-properties.rego" if extension == ".properties" else "policy/deny.rego"
 
-                    prompt = "This is the file content:\n"
-                    prompt += file_content
-                    prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
+prompt = "This is the file content:\n"
+prompt += file_content
+prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
 
-                    final_state = run_agents(prompt)
+final_state = run_agents(prompt)
 
-                    if final_state:
-                        # parsing file back into original filetype
-                        match extension:
-                            case ".properties":
-                                file_content = json2prop(f"tmp/{base_name}_patched.json", f"tmp/{base_name}_patched{extension}")
-                                final_state["parsed_patched_content"] = file_content
+if final_state:
+    # parsing file back into original filetype
+    match extension:
+        case ".properties":
+            file_content = json2prop(f"tmp/{os.path.splitext(filename)[0]}_patched.json", f"tmp/{os.path.splitext(filename)[0]}_patched{extension}")
+            final_state["parsed_patched_content"] = file_content
 
-                        approval_data = generate_report(remediation_start,
-                                        final_state["messages"],
-                                        file['path'],
-                                        final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
+    approval_data = generate_report(remediation_start,
+                    final_state["messages"],
+                    test_file_path,
+                    final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
 
-                        res = requests.post(f'{hachiware_endpoint}/api/report', 
-                            json={ "data": { "attributes": approval_data }}, 
-                            headers={"Content-Type": "application/vnd.api+json"}
-                        )
-                        if res.status_code >= 400:
-                            print(res.json())
-
-                case case if case.startswith("aws"):
-                    pass
-
-except KeyboardInterrupt:
-    print("Interrupt detected, terminating gracefully")
-    messages.resp.close()
-
-# with open("tmp/application.properties", "r") as f:
-#     contents = f.read()
-#     filename = "application.properties"
-#     policy_path = "policy/deny-application-properties.rego"
-#     prompt = "This is the file content:\n"
-#     prompt += contents
-#     prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
-#
-#     run_agents(prompt)
+    print("\n--- Remediation Report ---")
+    print(json.dumps(approval_data, indent=2))
+    
+    # --- Create GitHub PR ---
+    patched_file_path = f"tmp/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
+    create_remediation_pr(patched_file_path)
