@@ -113,4 +113,10 @@ except KeyboardInterrupt:
 
 # with open("tmp/application.properties", "r") as f:
 #     contents = f.read()
-#     run_agents(contents, "application.properties", "policy/deny-application-properties.rego")
+#     filename = "application.properties"
+#     policy_path = "policy/deny-application-properties.rego"
+#     prompt = "This is the file content:\n"
+#     prompt += contents
+#     prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
+#
+#     run_agents(prompt)
