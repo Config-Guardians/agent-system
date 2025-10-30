@@ -146,8 +146,13 @@ if final_state:
     # parsing file back into original filetype
     match extension:
         case ".properties":
-            file_content = json2prop(f"tmp/{os.path.splitext(filename)[0]}_patched.json", f"tmp/{os.path.splitext(filename)[0]}_patched{extension}")
+            patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
+            file_content = json2prop(f"tmp/{os.path.splitext(filename)[0]}_patched.json", patched_file_path)
             final_state["parsed_patched_content"] = file_content
+        case _:
+            patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
+            with open(patched_file_path, "w") as pf:
+                pf.write(final_state.get("parsed_patched_content", ""))
 
     approval_data = generate_report(remediation_start,
                     final_state["messages"],
@@ -158,5 +163,4 @@ if final_state:
     print(json.dumps(approval_data, indent=2))
     
     # --- Create GitHub PR ---
-    patched_file_path = f"tmp/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
     create_remediation_pr(patched_file_path)
