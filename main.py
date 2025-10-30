@@ -113,7 +113,7 @@ def run_agents(prompt: str):
 
 # --- Local file testing mode ---
 # Set the file you want to test here:
-test_file_path = "sample-configs/application.properties"  # Change this to any file you want to test
+test_file_path = "sample-configs/ecr.tf"  # Change this to any file you want to test
 
 if not os.path.isdir("tmp"):
     os.mkdir("tmp")
