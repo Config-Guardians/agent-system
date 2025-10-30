@@ -9,7 +9,7 @@ from sseclient import SSEClient
 
 from agents.command import command_node
 from utils.reporting import generate_report
-from utils.filetype import with_filetype_conversion
+from utils.filetype import json2prop, prop2json, with_filetype_conversion
 
 load_dotenv()
 from agents.monitoring import monitoring_node
@@ -30,12 +30,7 @@ hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
 if not hachiware_endpoint:
     raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
-@with_filetype_conversion
-def run_agents(contents: str, filename: str, policy_path: str):
-
-    prompt = "This is the file content:\n"
-    prompt += contents
-    prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
+def run_agents(prompt: str):
 
     message = HumanMessage(prompt)
     msg_state = MessagesState(messages=[message])
@@ -74,13 +69,34 @@ try:
 
                     remediation_start = datetime.now()
                     policy_path = "policy/deny-application-properties.rego"
-                    final_state = run_agents(file_content, filename, policy_path)
+
+                    base_name = os.path.splitext(filename)[0]
+                    extension = os.path.splitext(filename)[1]
+
+                    # parsing file into conftest compatible filetype
+                    match extension:
+                        case ".properties":
+                            file_content = prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
+                            filename = f"{base_name}.json"
+
+                    prompt = "This is the file content:\n"
+                    prompt += file_content
+                    prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
+
+                    final_state = run_agents(prompt)
 
                     if final_state:
+                        # parsing file back into original filetype
+                        match extension:
+                            case ".properties":
+                                file_content = json2prop(f"tmp/{base_name}_patched.json", f"tmp/{base_name}_patched{extension}")
+                                final_state["parsed_patched_content"] = file_content
+
                         approval_data = generate_report(remediation_start,
                                         final_state["messages"],
                                         file['path'],
                                         final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
+
                         res = requests.post(f'{hachiware_endpoint}/api/report', 
                             json={ "data": { "attributes": approval_data }}, 
                             headers={"Content-Type": "application/vnd.api+json"}

@@ -80,10 +80,6 @@ command_agent = create_react_agent(
 # for s in events:
 #     print(s["messages"][-1].pretty_print())
 #     print("----")
-#
-# def command_node(state: MessagesState):
-#     result = command_agent.invoke(state)
-#
 
 def command_node(state: MessagesState):
     result = command_agent.invoke(state)
