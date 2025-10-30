@@ -2,14 +2,19 @@ import os
 import re
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
+from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from langgraph.graph import MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command
 from .base import get_next_node, make_system_prompt
 
 
+llm = ChatOpenAI(model="gpt-4.1-mini")
+# llm = ChatOllama(model="qwen3:8b")
+
 remediation_agent = create_react_agent(
-    model="openai:gpt-4.1-mini",
+    model=llm,
     tools=[],
     prompt=make_system_prompt(
         """
