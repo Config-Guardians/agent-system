@@ -147,6 +147,7 @@ if final_state:
     match extension:
         case ".properties":
             patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
+            os.makedirs(os.path.dirname(patched_file_path), exist_ok=True)
             file_content = json2prop(f"tmp/{os.path.splitext(filename)[0]}_patched.json", patched_file_path)
             final_state["parsed_patched_content"] = file_content
         case _:
