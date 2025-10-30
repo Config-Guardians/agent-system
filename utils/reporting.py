@@ -137,16 +137,7 @@ def generate_report(remediation_start: datetime, messages: list[MessagesState], 
         }
     }
 
-    hachiware_endpoint = os.getenv("HACHIWARE_ENDPOINT")
-    if not hachiware_endpoint:
-        raise ValueError("Missing HACHIWARE_ENDPOINT env var")
-
-    res = requests.post(f'{hachiware_endpoint}/api/report', 
-        json={ "data": { "attributes": approval_data }}, 
-        headers={"Content-Type": "application/vnd.api+json"}
-    )
-    if res.status_code >= 400:
-        print(res.json())
+    return approval_data
 
     # try:
     #     with open("tmp/approval_request.json", "w") as f:

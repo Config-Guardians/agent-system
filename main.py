@@ -1,5 +1,6 @@
 import json
 import os
+import requests
 from datetime import datetime
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
@@ -50,43 +51,50 @@ def run_agents(contents: str, filename: str, policy_path: str):
 
     return final_state
 
-# messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
-#
-# print("Agent system started")
-# try:
-#     for msg in messages:
-#         if msg.data:
-#             data = json.loads(msg.data)
-#             match data['type']:
-#                 case "github_files":
-#                     file = data["data"]
-#                     filename = file['path'].split("/")[-1]
-#                     file_content = file['content']
-#                     print(file['path'])
-#                     if not file['path'] == 'src/main/resources/application.properties':
-#                         continue
-#
-#                     if not os.path.isdir("tmp"):
-#                         os.mkdir("tmp")
-#                     with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
-#                         f.write(file_content)
-#
-#                     remediation_start = datetime.now()
-#                     policy_path = "policy/deny-application-properties.rego"
-#                     final_state = run_agents(file_content, filename, policy_path)
-#
-#                     if final_state:
-#                         generate_report(remediation_start,
-#                                         final_state["messages"],
-#                                         file['path'],
-#                                         final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
-#                 case case if case.startswith("aws"):
-#                     pass
-#
-# except KeyboardInterrupt:
-#     print("Interrupt detected, terminating gracefully")
-#     messages.resp.close()
+messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
 
-with open("tmp/application.properties", "r") as f:
-    contents = f.read()
-    run_agents(contents, "application.properties", "policy/deny-application-properties.rego")
+print("Agent system started")
+try:
+    for msg in messages:
+        if msg.data:
+            data = json.loads(msg.data)
+            match data['type']:
+                case "github_files":
+                    file = data["data"]
+                    filename = file['path'].split("/")[-1]
+                    file_content = file['content']
+                    print(file['path'])
+                    if not file['path'] == 'src/main/resources/application.properties':
+                        continue
+
+                    if not os.path.isdir("tmp"):
+                        os.mkdir("tmp")
+                    with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
+                        f.write(file_content)
+
+                    remediation_start = datetime.now()
+                    policy_path = "policy/deny-application-properties.rego"
+                    final_state = run_agents(file_content, filename, policy_path)
+
+                    if final_state:
+                        approval_data = generate_report(remediation_start,
+                                        final_state["messages"],
+                                        file['path'],
+                                        final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
+                        res = requests.post(f'{hachiware_endpoint}/api/report', 
+                            json={ "data": { "attributes": approval_data }}, 
+                            headers={"Content-Type": "application/vnd.api+json"}
+                        )
+                        if res.status_code >= 400:
+                            print(res.json())
+
+                case case if case.startswith("aws"):
+                    pass
+
+except KeyboardInterrupt:
+    print("Interrupt detected, terminating gracefully")
+    messages.resp.close()
+
+# with open("tmp/application.properties", "r") as f:
+#     contents = f.read()
+#     run_agents(contents, "application.properties", "policy/deny-application-properties.rego")
