@@ -112,8 +112,7 @@ def run_agents(prompt: str):
     return final_state
 
 # --- Local file testing mode ---
-# Set the file you want to test here:
-test_file_path = "sample-configs/ecr.tf"  # Change this to any file you want to test
+test_file_path = "sample-configs/application.properties"
 
 if not os.path.isdir("tmp"):
     os.mkdir("tmp")
@@ -125,13 +124,15 @@ remediation_start = datetime.now()
 with open(test_file_path, "r") as f:
     file_content = f.read()
 
-# parsing file into conftest compatible filetype
+with open(f"tmp/{filename}", "w") as f:
+    f.write(file_content)
+
 match extension:
     case ".properties":
         file_content = prop2json(test_file_path, f"tmp/{os.path.splitext(filename)[0]}.json")
         filename = f"{os.path.splitext(filename)[0]}.json"
     case _:
-        pass  # Add more conversions if needed
+        pass
 
 # Choose policy file based on extension or file type
 policy_path = "policy/deny-application-properties.rego" if extension == ".properties" else "policy/deny.rego"
@@ -144,16 +145,19 @@ final_state = run_agents(prompt)
 
 if final_state:
     # parsing file back into original filetype
-    match extension:
-        case ".properties":
-            patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
-            os.makedirs(os.path.dirname(patched_file_path), exist_ok=True)
-            file_content = json2prop(f"tmp/{os.path.splitext(filename)[0]}_patched.json", patched_file_path)
-            final_state["parsed_patched_content"] = file_content
-        case _:
-            patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
-            with open(patched_file_path, "w") as pf:
-                pf.write(final_state.get("parsed_patched_content", ""))
+    patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
+    os.makedirs(os.path.dirname(patched_file_path), exist_ok=True)
+    with open(patched_file_path, "w") as pf:
+        pf.write(final_state.get("parsed_patched_content", ""))
+        # case ".properties":
+        #     patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
+        #     os.makedirs(os.path.dirname(patched_file_path), exist_ok=True)
+        #     file_content = json2prop(f"tmp/{os.path.splitext(filename)[0]}_patched.json", patched_file_path)
+        #     final_state["parsed_patched_content"] = file_content
+        # case _:
+        #     patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
+        #     with open(patched_file_path, "w") as pf:
+        #         pf.write(final_state.get("parsed_patched_content", ""))
 
     approval_data = generate_report(remediation_start,
                     final_state["messages"],
