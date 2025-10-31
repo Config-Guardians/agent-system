@@ -1,11 +1,17 @@
 import json
 import os
 import requests
+from typing import Literal
+
 from datetime import datetime
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import START, MessagesState, StateGraph
+from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
+from langgraph.types import Command
 from sseclient import SSEClient
+from pydantic import BaseModel, Field
 
 from agents.command import command_node
 from utils.reporting import generate_report
@@ -15,13 +21,41 @@ load_dotenv()
 from agents.monitoring import monitoring_node
 from agents.remediation import remediation_node
 
+class Route(BaseModel):
+    step: Literal["monitoring", "command"]
+
+llm = ChatOpenAI(model="gpt-4.1-mini")
+# llm = ChatOllama(model="qwen3:8b")
+
+def decision_node(state: MessagesState):
+    router = llm.with_structured_output(Route)
+    decision = router.invoke(
+        [
+            SystemMessage(
+                content=""" Route the input to monitoring or command based on the input. 
+                    If the input is an aws config, then route to command. 
+                    If the input is a configuration file, then route to monitoring."""
+            ),
+            HumanMessage(content=state["messages"][-1].content),
+        ]
+    )
+    print(decision.step)
+    return Command(
+        update={
+            # share internal message history of research agent with other agents
+            "messages": decision.step,
+        },
+        goto=decision.step,
+    )
+
 
 workflow = StateGraph(MessagesState)
+workflow.add_node("decision", decision_node)
+workflow.add_node("command", command_node)
 workflow.add_node("monitoring", monitoring_node)
 workflow.add_node("remediation", remediation_node)
-workflow.add_node("command", command_node)
 
-workflow.add_edge(START, "monitoring")
+workflow.add_edge(START, "decision")
 graph = workflow.compile()
 
 graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
@@ -118,5 +152,13 @@ except KeyboardInterrupt:
 #     prompt = "This is the file content:\n"
 #     prompt += contents
 #     prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
+#
+#     run_agents(prompt)
+#
+# with open("tmp/aws-resource.json", "r") as f:
+#     contents = f.read()
+#     prompt = "This is the config content:\n"
+#     prompt += contents
+#     prompt += f"What are the recommended command fixes for this cloud resource?"
 #
 #     run_agents(prompt)

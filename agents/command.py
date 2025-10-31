@@ -4,6 +4,7 @@ from langchain_core.tools import create_retriever_tool, tool
 from langgraph.graph import MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command
+from langgraph.graph import END
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
 from langchain_ollama import OllamaEmbeddings
@@ -17,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-#embeddings = OllamaEmbeddings(model="qwen3-embedding:8b")
+# embeddings = OllamaEmbeddings(model="qwen3-embedding:8b")
 embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
 index_path = "agents/faiss_index_openai"
@@ -83,12 +84,11 @@ command_agent = create_react_agent(
 
 def command_node(state: MessagesState):
     result = command_agent.invoke(state)
-    goto = get_next_node(result["messages"][-1], "monitoring")
     result["messages"][-1] = HumanMessage(
-        content=result["messages"][-1].content, name="remediation"
+        content=result["messages"][-1].content, name="command"
     )
 
     return Command(
         update={"messages": result["messages"]},
-        goto=goto,
+        goto=END,
     )
