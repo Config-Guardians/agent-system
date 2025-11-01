@@ -33,7 +33,7 @@ def decision_node(state: MessagesState):
         [
             SystemMessage(
                 content=""" Route the input to monitoring or command based on the input. 
-                    If the input is an aws config, then route to command. 
+                    If the input is an aws resource, then route to command. 
                     If the input is a configuration file, then route to monitoring."""
             ),
             HumanMessage(content=state["messages"][-1].content),
@@ -139,7 +139,12 @@ try:
                             print(res.json())
 
                 case case if case.startswith("aws"):
-                    pass
+                    contents = data["data"]
+
+                    prompt = "What are the recommended command fixes for the cloud resource below?\n"
+                    prompt += json.dumps(contents, indent=2)
+
+                    run_agents(prompt)
 
 except KeyboardInterrupt:
     print("Interrupt detected, terminating gracefully")
