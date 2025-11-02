@@ -39,7 +39,7 @@ def decision_node(state: MessagesState):
             HumanMessage(content=state["messages"][-1].content),
         ]
     )
-    print(decision.step)
+    print(f"{decision.step} agent was chosen.")
     return Command(
         update={
             # share internal message history of research agent with other agents
@@ -119,24 +119,26 @@ try:
 
                     final_state = run_agents(prompt)
 
-                    if final_state:
-                        # parsing file back into original filetype
-                        match extension:
-                            case ".properties":
-                                file_content = json2prop(f"tmp/{base_name}_patched.json", f"tmp/{base_name}_patched{extension}")
-                                final_state["parsed_patched_content"] = file_content
+                    if not final_state:
+                        raise Exception("final_state was None.")
 
-                        approval_data = generate_report(remediation_start,
-                                        final_state["messages"],
-                                        file['path'],
-                                        final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
+                    # parsing file back into original filetype
+                    match extension:
+                        case ".properties":
+                            file_content = json2prop(f"tmp/{base_name}_patched.json", f"tmp/{base_name}_patched{extension}")
+                            final_state["parsed_patched_content"] = file_content
 
-                        res = requests.post(f'{hachiware_endpoint}/api/report', 
-                            json={ "data": { "attributes": approval_data }}, 
-                            headers={"Content-Type": "application/vnd.api+json"}
-                        )
-                        if res.status_code >= 400:
-                            print(res.json())
+                    approval_data = generate_report(remediation_start,
+                                    final_state["messages"],
+                                    file['path'],
+                                    final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
+
+                    res = requests.post(f'{hachiware_endpoint}/api/report', 
+                        json={ "data": { "attributes": approval_data }}, 
+                        headers={"Content-Type": "application/vnd.api+json"}
+                    )
+                    if res.status_code >= 400:
+                        print(res.json())
 
                 case case if case.startswith("aws"):
                     contents = data["data"]
