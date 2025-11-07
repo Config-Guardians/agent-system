@@ -119,6 +119,7 @@ if not os.path.isdir("tmp"):
 
 filename = os.path.basename(test_file_path)
 extension = os.path.splitext(filename)[1]
+base_name = os.path.splitext(filename)[0]
 remediation_start = datetime.now()
 
 with open(test_file_path, "r") as f:
@@ -129,8 +130,8 @@ with open(f"tmp/{filename}", "w") as f:
 
 match extension:
     case ".properties":
-        file_content = prop2json(test_file_path, f"tmp/{os.path.splitext(filename)[0]}.json")
-        filename = f"{os.path.splitext(filename)[0]}.json"
+        file_content = prop2json(f"tmp/{filename}", f"tmp/{base_name}.json")
+        filename = f"{base_name}.json"
     case _:
         pass
 
@@ -148,11 +149,21 @@ if (
     final_state
     and ("FAIL" in monitoring_message or "violation" in monitoring_message.lower() or "recommended change" in monitoring_message.lower())
 ):
-    # parsing file back into original filetype
-    patched_file_path = f"remediation_patches/{os.path.splitext(os.path.basename(test_file_path))[0]}_patched{extension}"
-    os.makedirs(os.path.dirname(patched_file_path), exist_ok=True)
-    with open(patched_file_path, "w") as pf:
-        pf.write(final_state.get("parsed_patched_content", ""))
+    # Parse patched file back into original filetype in tmp/
+    patched_file_path = f"tmp/{base_name}_patched{extension}"
+    match extension:
+        case ".properties":
+            file_content = json2prop(f"tmp/{base_name}_patched.json", patched_file_path)
+            final_state["parsed_patched_content"] = file_content
+        case _:
+            with open(patched_file_path, "w") as pf:
+                pf.write(final_state.get("parsed_patched_content", ""))
+
+    # Copy patched file from tmp/ to remediation_patches/ for PR/reporting
+    remediation_patch_path = f"remediation_patches/{base_name}_patched{extension}"
+    os.makedirs(os.path.dirname(remediation_patch_path), exist_ok=True)
+    with open(patched_file_path, "r") as src, open(remediation_patch_path, "w") as dst:
+        dst.write(src.read())
 
     approval_data = generate_report(remediation_start,
                     final_state["messages"],
@@ -167,6 +178,6 @@ if (
         f"{json.dumps(approval_data, indent=2)}\n"
         "```"
     )
-    create_remediation_pr(patched_file_path, pr_body=pr_body)
+    create_remediation_pr(remediation_patch_path, pr_body=pr_body)
 else:
     print("No violations detected.")
