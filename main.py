@@ -131,7 +131,7 @@ try:
                                     file['path'],
                                     final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
 
-                    # --- Auto PR logic ---
+                    # Create GitHub PR with remediation changes
                     remediation_patch_path = f"remediation_patches/{base_name}_patched{extension}"
                     os.makedirs(os.path.dirname(remediation_patch_path), exist_ok=True)
                     with open(f"tmp/{base_name}_patched{extension}", "r") as src, open(remediation_patch_path, "w") as dst:
@@ -146,7 +146,6 @@ try:
                         "```"
                     )
                     create_remediation_pr(remediation_patch_path, pr_body=pr_body)
-                    # --- End Auto PR logic ---
 
                     res = requests.post(f'{hachiware_endpoint}/api/report', 
                         json={ "data": { "attributes": approval_data }}, 
