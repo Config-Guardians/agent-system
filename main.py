@@ -17,6 +17,7 @@ from agents.command import command_node
 from utils.policy import retrieve_policy
 from utils.reporting import generate_report
 from utils.filetype import json2prop, prop2json, with_filetype_conversion
+from utils.github_pr import create_remediation_pr
 
 load_dotenv()
 from agents.monitoring import monitoring_node
@@ -135,6 +136,20 @@ try:
                                     final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
 
                     approval_data["type"] = "code"
+
+                    # Create GitHub PR with remediation changes
+                    remediation_patch_path = f"tmp/{base_name}_patched{extension}"
+
+                    print("\n--- Remediation Report ---")
+                    pr_body = (
+                        "This PR contains automated security/configuration remediations.\n\n"
+                        "## Remediation Report\n"
+                        "```json\n"
+                        f"{json.dumps(approval_data, indent=2)}\n"
+                        "```"
+                    )
+                    create_remediation_pr(remediation_patch_path, file['path'], file['repository_full_name'], pr_body=pr_body)
+
                     res = requests.post(f'{hachiware_endpoint}/api/report', 
                         json={ "data": { "attributes": approval_data }}, 
                         headers={"Content-Type": "application/vnd.api+json"}
