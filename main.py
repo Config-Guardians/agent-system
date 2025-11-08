@@ -102,10 +102,7 @@ try:
                         f.write(file_content)
 
                     remediation_start = datetime.now()
-                    policy_path = "policy/deny-application-properties.rego"
-
-                    base_name = os.path.splitext(filename)[0]
-                    extension = os.path.splitext(filename)[1]
+                    policy_path = retrieve_policy(filename)
 
                     # parsing file into conftest compatible filetype
                     match extension:
