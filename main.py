@@ -124,31 +124,11 @@ try:
 
                     final_state = run_agents(prompt)
 
-                    if not final_state:
-                        raise Exception("final_state was None.")
-
-                    # check if violations were detected before proceeding
-                    monitoring_message = final_state["messages"][-1].content if final_state else ""
-                    if not (
-                        final_state
-                        and ("FAIL" in monitoring_message or "violation" in monitoring_message.lower() or "recommended change" in monitoring_message.lower())
-                    ):
-                        print("No violations detected.")
-                        continue
-
                     # parsing file back into original filetype
                     match extension:
                         case ".properties":
                             file_content = json2prop(f"tmp/{base_name}_patched.json", f"tmp/{base_name}_patched{extension}")
                             final_state["parsed_patched_content"] = file_content
-                        case _:
-                            patched_file_path = f"tmp/{base_name}_patched{extension}"
-                            if os.path.exists(patched_file_path):
-                                with open(patched_file_path, "r") as pf:
-                                    final_state["parsed_patched_content"] = pf.read()
-                            else:
-                                print(f"Warning: Patched file {patched_file_path} not found!")
-                                final_state["parsed_patched_content"] = ""
 
                     approval_data = generate_report(remediation_start,
                                     final_state["messages"],
@@ -156,12 +136,9 @@ try:
                                     final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
 
                     approval_data["type"] = "code"
-                    
+
                     # Create GitHub PR with remediation changes
-                    remediation_patch_path = f"remediation_patches/{base_name}_patched{extension}"
-                    os.makedirs(os.path.dirname(remediation_patch_path), exist_ok=True)
-                    with open(f"tmp/{base_name}_patched{extension}", "r") as src, open(remediation_patch_path, "w") as dst:
-                        dst.write(src.read())
+                    remediation_patch_path = f"tmp/{base_name}_patched{extension}"
 
                     print("\n--- Remediation Report ---")
                     pr_body = (
@@ -171,7 +148,7 @@ try:
                         f"{json.dumps(approval_data, indent=2)}\n"
                         "```"
                     )
-                    create_remediation_pr(remediation_patch_path, pr_body=pr_body)
+                    create_remediation_pr(remediation_patch_path, file['path'], file['repository_full_name'], pr_body=pr_body)
 
                     res = requests.post(f'{hachiware_endpoint}/api/report', 
                         json={ "data": { "attributes": approval_data }}, 
