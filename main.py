@@ -42,7 +42,7 @@ def run_agents(prompt: str):
     return final_state
 
 # --- Local file testing mode ---
-test_file_path = "sample-configs/application.properties"
+test_file_path = "sample-configs/ecr.tf"
 
 if not os.path.isdir("tmp"):
     os.mkdir("tmp")
