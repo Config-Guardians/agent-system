@@ -128,6 +128,14 @@ try:
                         case ".properties":
                             file_content = json2prop(f"tmp/{base_name}_patched.json", f"tmp/{base_name}_patched{extension}")
                             final_state["parsed_patched_content"] = file_content
+                        case _:
+                            patched_file_path = f"tmp/{base_name}_patched{extension}"
+                            if os.path.exists(patched_file_path):
+                                with open(patched_file_path, "r") as pf:
+                                    final_state["parsed_patched_content"] = pf.read()
+                            else:
+                                print(f"Warning: Patched file {patched_file_path} not found!")
+                                final_state["parsed_patched_content"] = ""
 
                     approval_data = generate_report(remediation_start,
                                     final_state["messages"],
