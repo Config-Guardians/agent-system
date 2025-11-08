@@ -86,8 +86,12 @@ if (
             file_content = json2prop(f"tmp/{base_name}_patched.json", patched_file_path)
             final_state["parsed_patched_content"] = file_content
         case _:
-            with open(patched_file_path, "w") as pf:
-                pf.write(final_state.get("parsed_patched_content", ""))
+            if os.path.exists(patched_file_path):
+                with open(patched_file_path, "r") as pf:
+                    final_state["parsed_patched_content"] = pf.read()
+            else:
+                print(f"Warning: Patched file {patched_file_path} not found!")
+                final_state["parsed_patched_content"] = ""
 
     # Copy patched file from tmp/ to remediation_patches/ for PR/reporting
     remediation_patch_path = f"remediation_patches/{base_name}_patched{extension}"
