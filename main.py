@@ -49,6 +49,7 @@ def decision_node(state: MessagesState):
         goto=decision.step,
     )
 
+
 workflow = StateGraph(MessagesState)
 workflow.add_node("decision", decision_node)
 workflow.add_node("command", command_node)
