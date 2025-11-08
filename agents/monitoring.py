@@ -1,5 +1,4 @@
 import subprocess
-from typing import Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
@@ -8,7 +7,6 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command
-from pydantic import BaseModel, Field
 from .base import get_next_node, make_system_prompt
 
 
@@ -39,26 +37,9 @@ monitoring_agent = create_react_agent(
     ),
 )
 
-
-class Route(BaseModel):
-    step: Literal["remediation", "command", "end"] = Field(
-        "end", description="The next step in the routing process"
-    )
-
-
 def monitoring_node(state: MessagesState):
     result = monitoring_agent.invoke(state)
-    router = llm.with_structured_output(Route)
-    decision = router.invoke(
-        [
-            SystemMessage(
-                content="Route the input to remediation or command based on the input."
-            ),
-            HumanMessage(content=result["messages"][-1].content),
-        ]
-    )
-    print(decision)
-    goto = get_next_node(result["messages"][-1], decision.step)
+    goto = get_next_node(result["messages"][-1], "remediation")
     result["messages"][-1] = HumanMessage(
         content=result["messages"][-1].content, name="monitoring"
     )
