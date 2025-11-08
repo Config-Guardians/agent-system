@@ -123,6 +123,15 @@ try:
                     if not final_state:
                         raise Exception("final_state was None.")
 
+                    # check if violations were detected before proceeding
+                    monitoring_message = final_state["messages"][-1].content if final_state else ""
+                    if not (
+                        final_state
+                        and ("FAIL" in monitoring_message or "violation" in monitoring_message.lower() or "recommended change" in monitoring_message.lower())
+                    ):
+                        print("No violations detected.")
+                        continue
+
                     # parsing file back into original filetype
                     match extension:
                         case ".properties":
