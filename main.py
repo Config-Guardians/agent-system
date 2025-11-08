@@ -14,6 +14,7 @@ from sseclient import SSEClient
 from pydantic import BaseModel, Field
 
 from agents.command import command_node
+from utils.policy import retrieve_policy
 from utils.reporting import generate_report
 from utils.filetype import json2prop, prop2json, with_filetype_conversion
 from utils.github_pr import create_remediation_pr
@@ -79,6 +80,8 @@ def run_agents(prompt: str):
         print("----")
         final_state = s
 
+    assert final_state != None, "Final state was None."
+
     return final_state
 
 messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
@@ -93,8 +96,12 @@ try:
                     file = data["data"]
                     filename = file['path'].split("/")[-1]
                     file_content = file['content']
+
+                    base_name = os.path.splitext(filename)[0]
+                    extension = os.path.splitext(filename)[1]
+
                     print(file['path'])
-                    if not file['path'] == 'src/main/resources/application.properties':
+                    if extension not in ['.tf', '.properties']:
                         continue
 
                     if not os.path.isdir("tmp"):
@@ -103,10 +110,7 @@ try:
                         f.write(file_content)
 
                     remediation_start = datetime.now()
-                    policy_path = "policy/deny-application-properties.rego"
-
-                    base_name = os.path.splitext(filename)[0]
-                    extension = os.path.splitext(filename)[1]
+                    policy_path = retrieve_policy(filename)
 
                     # parsing file into conftest compatible filetype
                     match extension:
@@ -151,6 +155,8 @@ try:
                                     file['path'],
                                     final_state["parsed_patched_content"] if "parsed_patched_content" in final_state else None)
 
+                    approval_data["type"] = "code"
+                    
                     # Create GitHub PR with remediation changes
                     remediation_patch_path = f"remediation_patches/{base_name}_patched{extension}"
                     os.makedirs(os.path.dirname(remediation_patch_path), exist_ok=True)
@@ -180,7 +186,19 @@ try:
                     prompt = "What are the recommended command fixes for the cloud resource below?\n"
                     prompt += json.dumps(contents, indent=2)
 
-                    run_agents(prompt)
+                    final_state = run_agents(prompt)
+
+                    approval_data = {
+                        "type": "cloud",
+                        "command": final_state["messages"][-1].content
+                    }
+                    approval_data["type"] = "cloud"
+                    res = requests.post(f'{hachiware_endpoint}/api/report', 
+                        json={ "data": { "attributes": approval_data }}, 
+                        headers={"Content-Type": "application/vnd.api+json"}
+                    )
+                    if res.status_code >= 400:
+                        print(res.json())
 
 except KeyboardInterrupt:
     print("Interrupt detected, terminating gracefully")
