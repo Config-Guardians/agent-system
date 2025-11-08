@@ -1,6 +1,5 @@
 import os
 from github import Github
-import git
 from datetime import datetime
 
 def create_remediation_pr(
@@ -15,23 +14,48 @@ def create_remediation_pr(
         print("GITHUB_TOKEN or GITHUB_REPO not set in environment.")
         return
 
-    repo = git.Repo(".")
-    origin = repo.remote(name="origin")
-    repo.git.checkout(base_branch)
-    repo.git.pull()
-    branch_name = f"remediation-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    repo.git.checkout("-b", branch_name)
-    repo.git.add(patched_file_path)
-    repo.git.commit("-m", pr_title)
-    repo.git.push("--set-upstream", "origin", branch_name)
-
+    with open(patched_file_path, "r") as f:
+        file_content = f.read()
+    
+    filename = os.path.basename(patched_file_path).replace("_patched", "")
+    
     g = Github(GITHUB_TOKEN)
     github_repo = g.get_repo(GITHUB_REPO)
-    pr = github_repo.create_pull(
-        title=pr_title,
-        body=pr_body,
-        head=branch_name,
-        base=base_branch
-    )
-    print(f"Pull request created: {pr.html_url}")
-    return pr.html_url
+    
+    branch_name = f"remediation-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    
+    try:
+        base_ref = github_repo.get_git_ref(f"heads/{base_branch}")
+        base_sha = base_ref.object.sha
+        
+        github_repo.create_git_ref(ref=f"refs/heads/{branch_name}", sha=base_sha)
+        
+        try:
+            existing_file = github_repo.get_contents(filename, ref=branch_name)
+            github_repo.update_file(
+                path=filename,
+                message=pr_title,
+                content=file_content,
+                sha=existing_file.sha,
+                branch=branch_name
+            )
+        except:
+            github_repo.create_file(
+                path=filename,
+                message=pr_title,
+                content=file_content,
+                branch=branch_name
+            )
+        
+        pr = github_repo.create_pull(
+            title=pr_title,
+            body=pr_body,
+            head=branch_name,
+            base=base_branch
+        )
+        print(f"Pull request created: {pr.html_url}")
+        return pr.html_url
+        
+    except Exception as e:
+        print(f"Error creating PR: {e}")
+        return None
