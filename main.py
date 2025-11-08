@@ -66,6 +66,7 @@ if not hachiware_endpoint:
     raise ValueError("Missing HACHIWARE_ENDPOINT env var")
 
 def run_agents(prompt: str):
+    
     message = HumanMessage(prompt)
     msg_state = MessagesState(messages=[message])
     events = graph.stream(msg_state,
@@ -77,6 +78,7 @@ def run_agents(prompt: str):
         print(s["messages"][-1].pretty_print())
         print("----")
         final_state = s
+        
     return final_state
 
 messages = SSEClient(f"{hachiware_endpoint}/sse", retry=5000)
