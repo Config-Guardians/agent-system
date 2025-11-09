@@ -2,6 +2,57 @@ import os
 from github import Github
 from datetime import datetime
 
+def create_pr_body(data):
+    pr_body = f"""# Policy Remediation Report
+
+**Original File:** `{data['original_filename']}`  
+**Validation Status:** {data['policy_compliance']['validation_status']}  
+**Violations Detected:** {data['policy_compliance']['violations_detected']}  
+**Policy Used:** `{data['policy_compliance']['policy_file_used']}`  
+
+---
+
+## 🧩 Changes Summary
+**Total Changes:** {data['changes_summary']['total_changes']}
+
+### Details
+"""
+
+    for change in data['changes_summary']['changes_detail']:
+        pr_body += f"- **{change['type']}** → {change['description']}\n"
+
+    pr_body += f"""
+
+---
+
+## 🔍 Validation Summary
+| Test Type | Total | Passed | Failed |
+|------------|--------|---------|--------|
+| Original | {data['validation_details']['original_tests_summary']['total_tests']} | {data['validation_details']['original_tests_summary']['passed']} | {data['validation_details']['original_tests_summary']['failures']} |
+| Patched | {data['validation_details']['patched_tests_summary']['total_tests']} | {data['validation_details']['patched_tests_summary']['passed']} | {data['validation_details']['patched_tests_summary']['failures']} |
+
+---
+
+## 🚨 Violations Analysis
+{data['violations_analysis']['raw_violations']}
+
+---
+
+## 🕒 Timing
+- **Start:** {data['timing']['remediation_start_time']}
+- **End:** {data['timing']['remediation_end_time']}
+- **Duration:** {data['timing']['total_duration_seconds']} seconds
+
+---
+
+## 🧾 Patched Content
+```
+{data['patched_content']}
+```
+"""
+
+    return pr_body
+
 def create_remediation_pr(
     patched_file_path: str,
     original_file_path: str,
