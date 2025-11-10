@@ -1,4 +1,5 @@
 import os
+import re
 from github import Github
 from datetime import datetime
 
@@ -34,7 +35,9 @@ def create_pr_body(data):
 ---
 
 ## 🚨 Violations Analysis
-{data['violations_analysis']['raw_violations']}
+```
+{re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', data['violations_analysis']['raw_violations'])}
+```
 
 ---
 
