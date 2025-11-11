@@ -21,7 +21,7 @@ load_dotenv()
 # embeddings = OllamaEmbeddings(model="qwen3-embedding:8b")
 embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
-index_path = "agents/faiss_index_openai"
+index_path = "agents/faiss_index"
 if os.path.exists(f"./{index_path}"): 
     db = FAISS.load_local(f"./{index_path}", embeddings, allow_dangerous_deserialization=True)
 else:
