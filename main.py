@@ -13,7 +13,6 @@ from langgraph.types import Command
 from sseclient import SSEClient
 from pydantic import BaseModel, Field
 
-from agents.command import command_node
 from utils.policy import retrieve_policy
 from utils.reporting import generate_report
 from utils.filetype import json2prop, prop2json, with_filetype_conversion
@@ -53,7 +52,10 @@ def decision_node(state: MessagesState):
 
 workflow = StateGraph(MessagesState)
 workflow.add_node("decision", decision_node)
-workflow.add_node("command", command_node)
+if os.path.exists('./faiss_index'):
+    from agents.command import command_node
+    workflow.add_node("command", command_node)
+
 workflow.add_node("monitoring", monitoring_node)
 workflow.add_node("remediation", remediation_node)
 

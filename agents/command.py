@@ -18,14 +18,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# embeddings = OllamaEmbeddings(model="qwen3-embedding:8b")
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+embeddings = OllamaEmbeddings(model="qwen3-embedding:8b")
+# embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
 index_path = "agents/faiss_index"
 if os.path.exists(f"./{index_path}"): 
     db = FAISS.load_local(f"./{index_path}", embeddings, allow_dangerous_deserialization=True)
 else:
-    loader = PyPDFLoader("./aws-cli.pdf")
+    pdf_path = "./aws_cli.pdf"
+    assert os.path.exists(pdf_path), "Make sure /faiss_index is available or provide aws-cli.pdf to build vector store db for command agent."
+
+    loader = PyPDFLoader(pdf_path)
     documents = []
     index = 1
     for doc in loader.lazy_load():
