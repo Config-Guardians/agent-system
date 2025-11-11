@@ -1,3 +1,4 @@
+import logging
 import os
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import create_retriever_tool, tool
@@ -21,55 +22,59 @@ load_dotenv()
 embeddings = OllamaEmbeddings(model="qwen3-embedding:8b")
 # embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
-index_path = "agents/faiss_index"
-if os.path.exists(f"./{index_path}"): 
-    db = FAISS.load_local(f"./{index_path}", embeddings, allow_dangerous_deserialization=True)
-else:
-    pdf_path = "./aws_cli.pdf"
-    assert os.path.exists(pdf_path), "Make sure /faiss_index is available or provide aws-cli.pdf to build vector store db for command agent."
-
-    loader = PyPDFLoader(pdf_path)
-    documents = []
-    index = 1
-    for doc in loader.lazy_load():
-        documents.append(doc)
-        print(f"Loading page {index}", end='\r')
-        index += 1
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    print("Splitting documents into chunks")
-    chunks = text_splitter.split_documents(documents)
-
-    print("Embedding documents in vector store")
-    batch_size = 100
-    db = None # Initialize db outside the loop if it's persistent
-
-    for i in range(0, len(chunks), batch_size):
-        if db is None:
-            db = FAISS.from_documents(chunks[:batch_size], embeddings)
-        else:
-            batch = chunks[i:i + batch_size]
-            db.add_documents(batch) # Add subsequent batches
-        print(f"Processed batch {i // batch_size + 1}/{len(chunks) // batch_size}", end='\r')
-
-    if db == None:
-        raise Exception("Sumthing wong")
-
-    db.save_local(f"{index_path}")
-
-retriever = db.as_retriever()
-
-aws_cli_doc_tool = create_retriever_tool(
-    retriever,
-    "aws_cli_doc_retriever",
-    "Searches the AWS CLI documentation for relevant command information and references."
-)
-
 llm = ChatOpenAI(model="gpt-4.1-mini")
 # llm = ChatOllama(model="qwen3:8b")
+tools = []
+
+index_path = "./agents/faiss_index"
+pdf_path = "./aws_cli.pdf"
+if os.path.exists(index_path) or os.path.exists(pdf_path):
+    if os.path.exists(index_path): 
+        db = FAISS.load_local(f"./{index_path}", embeddings, allow_dangerous_deserialization=True)
+    else:
+        loader = PyPDFLoader(pdf_path)
+        documents = []
+        index = 1
+        for doc in loader.lazy_load():
+            documents.append(doc)
+            print(f"Loading page {index}", end='\r')
+            index += 1
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        print("Splitting documents into chunks")
+        chunks = text_splitter.split_documents(documents)
+
+        print("Embedding documents in vector store")
+        batch_size = 100
+        db = None # Initialize db outside the loop if it's persistent
+
+        for i in range(0, len(chunks), batch_size):
+            if db is None:
+                db = FAISS.from_documents(chunks[:batch_size], embeddings)
+            else:
+                batch = chunks[i:i + batch_size]
+                db.add_documents(batch) # Add subsequent batches
+            print(f"Processed batch {i // batch_size + 1}/{len(chunks) // batch_size}", end='\r')
+
+        if db == None:
+            raise Exception("Sumthing wong")
+
+        db.save_local(f"{index_path}")
+
+    retriever = db.as_retriever()
+
+    aws_cli_doc_tool = create_retriever_tool(
+        retriever,
+        "aws_cli_doc_retriever",
+        "Searches the AWS CLI documentation for relevant command information and references."
+    )
+    tools.append(aws_cli_doc_tool)
+
+else:
+    logging.warning("command agent severely impaired, loaded without documentation rag tool")
 
 command_agent = create_react_agent(
     model=llm,
-    tools=[aws_cli_doc_tool],
+    tools=tools,
     prompt=make_system_prompt("""
         You are an agent that resolves cloud security vulnerabilities by suggesting aws cli commands to run in the terminal.
         Explain each step of the solution and keep it simple.

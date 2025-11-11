@@ -19,6 +19,7 @@ from utils.filetype import json2prop, prop2json, with_filetype_conversion
 from utils.github_pr import create_pr_body, create_remediation_pr
 
 load_dotenv()
+from agents.command import command_node
 from agents.monitoring import monitoring_node
 from agents.remediation import remediation_node
 
@@ -52,17 +53,12 @@ def decision_node(state: MessagesState):
 
 workflow = StateGraph(MessagesState)
 workflow.add_node("decision", decision_node)
-if os.path.exists('./faiss_index'):
-    from agents.command import command_node
-    workflow.add_node("command", command_node)
-
+workflow.add_node("command", command_node)
 workflow.add_node("monitoring", monitoring_node)
 workflow.add_node("remediation", remediation_node)
 
 workflow.add_edge(START, "decision")
 graph = workflow.compile()
-
-graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
 
 hachiware_endpoint = os.getenv('HACHIWARE_ENDPOINT')
 if not hachiware_endpoint:
