@@ -12,4 +12,4 @@ def retrieve_policy(filename: str) -> str:
                     return "policy/deny-s3.rego"
                 elif "aws_ecr_repository" in content:
                     return "policy/deny-ecr.rego"
-    return ""
+    raise Exception("Appropriate policy could not be found for given file.")

@@ -108,7 +108,11 @@ try:
                         f.write(file_content)
 
                     remediation_start = datetime.now()
-                    policy_path = retrieve_policy(filename)
+                    try:
+                        policy_path = retrieve_policy(filename)
+                    except Exception as e:
+                        print(e)
+                        continue
 
                     # parsing file into conftest compatible filetype
                     match extension:
