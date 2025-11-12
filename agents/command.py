@@ -28,9 +28,9 @@ tools = []
 
 index_path = "./agents/faiss_index"
 pdf_path = "./aws_cli.pdf"
-if os.path.exists(index_path) or os.path.exists(pdf_path):
+if os.path.exists(index_path) and len(os.listdir(index_path)) or os.path.exists(pdf_path):
     if os.path.exists(index_path): 
-        db = FAISS.load_local(f"./{index_path}", embeddings, allow_dangerous_deserialization=True)
+        db = FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
     else:
         loader = PyPDFLoader(pdf_path)
         documents = []
