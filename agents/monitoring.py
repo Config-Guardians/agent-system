@@ -23,7 +23,7 @@ def run_conftest(filename: str, policy_path: str) -> str:
     return output
 
 llm = ChatOpenAI(model="gpt-4.1-mini")
-# llm = ChatOllama(model="qwen3:8b")
+# llm = ChatOllama(model="qwen3:8b", reasoning=False)
 
 monitoring_agent = create_react_agent(
     model=llm,

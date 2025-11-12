@@ -11,7 +11,7 @@ from .base import get_next_node, make_system_prompt
 
 
 llm = ChatOpenAI(model="gpt-4.1-mini")
-# llm = ChatOllama(model="qwen3:8b")
+# llm = ChatOllama(model="qwen3:8b", reasoning=False)
 
 remediation_agent = create_react_agent(
     model=llm,

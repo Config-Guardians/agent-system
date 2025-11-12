@@ -27,7 +27,7 @@ class Route(BaseModel):
     step: Literal["monitoring", "command"]
 
 llm = ChatOpenAI(model="gpt-4.1-mini")
-# llm = ChatOllama(model="qwen3:8b")
+# llm = ChatOllama(model="qwen3:8b", reasoning=False)
 
 def decision_node(state: MessagesState):
     router = llm.with_structured_output(Route)
@@ -122,7 +122,7 @@ try:
 
                     prompt = "This is the file content:\n"
                     prompt += file_content
-                    prompt += f"What are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
+                    prompt += f"\nWhat are the recommended changes for this file \"{filename}\" against the policy in {policy_path}?"
 
                     final_state = run_agents(prompt)
 

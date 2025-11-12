@@ -23,7 +23,7 @@ embeddings = OllamaEmbeddings(model="qwen3-embedding:8b")
 # embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
 llm = ChatOpenAI(model="gpt-4.1-mini")
-# llm = ChatOllama(model="qwen3:8b")
+# llm = ChatOllama(model="qwen3:8b", reasoning=False)
 tools = []
 
 index_path = "./agents/faiss_index"
