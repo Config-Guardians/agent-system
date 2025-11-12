@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import requests
 from typing import Literal
@@ -111,7 +112,7 @@ try:
                     try:
                         policy_path = retrieve_policy(filename)
                     except Exception as e:
-                        print(e)
+                        logging.error(e)
                         continue
 
                     # parsing file into conftest compatible filetype

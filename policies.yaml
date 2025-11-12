@@ -1,0 +1,10 @@
+- filename_pattern: "^application\\.properties$"
+  policy: "policy/deny-application-properties.rego"
+
+- filename_pattern: "\\.tf$"
+  content_pattern: "aws_s3_bucket"
+  policy: "policy/deny-s3.rego"
+
+- filename_pattern: "\\.tf$"
+  content_pattern: "aws_ecr_repository"
+  policy: "policy/deny-ecr.rego"
