@@ -109,7 +109,7 @@ def generate_report(remediation_start: datetime, messages: list[MessagesState], 
 
     # Create approval request
     approval_data = {
-        "original_filename": filename,
+        "original_filename": remote_filename,
         "patched_content": parsed_patched_content if parsed_patched_content else patched_content,
         "policy_compliance": {
             "violations_detected": violations_detected,
