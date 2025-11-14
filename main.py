@@ -90,6 +90,7 @@ try:
     for msg in messages:
         if msg.data:
             data = json.loads(msg.data)
+            remediation_start = datetime.now()
             match data['type']:
                 case "github_files":
                     file = data["data"]
@@ -108,7 +109,6 @@ try:
                     with open(f"tmp/{filename}", "w") as f: # TODO: security vulnerability
                         f.write(file_content)
 
-                    remediation_start = datetime.now()
                     try:
                         policy_path = retrieve_policy(filename)
                     except Exception as e:
@@ -162,10 +162,17 @@ try:
 
                     final_state = run_agents(prompt)
 
+                    remediation_end = datetime.now()
+                    total_duration = (remediation_end - remediation_start).total_seconds()
                     attributes = {
                         "type": "cloud",
                         "command": final_state["messages"][-1].content,
-                        "name": data['type']
+                        "name": data['type'],
+                        "timing": {
+                            "remediation_start_time": remediation_start.isoformat() + "Z", #TODO: change to time of commit/change time
+                            "remediation_end_time": remediation_end.isoformat() + "Z",
+                            "total_duration_seconds": round(total_duration, 2)
+                        }
                     }
                     attributes["type"] = "cloud"
                     res = requests.post(f'{hachiware_endpoint}/api/report', 
