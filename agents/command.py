@@ -77,6 +77,7 @@ command_agent = create_react_agent(
     tools=tools,
     prompt=make_system_prompt("""
         You are an agent that resolves cloud security vulnerabilities by suggesting aws cli commands to run in the terminal.
+        If there are no issues with the cloud resources, just say "No vulnerabilities were detected".
         Explain each step of the solution and keep it simple.
         If you are unsure about how to fix any issues with terminal commands, use your tool to search aws cli documentation for relevant information, DO NOT MAKE UP COMMANDS.
         DO NOT ASK QUESTIONS.
