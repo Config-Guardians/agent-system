@@ -70,17 +70,29 @@ if os.path.exists(index_path) and len(os.listdir(index_path)) or os.path.exists(
     tools.append(aws_cli_doc_tool)
 
 else:
-    logging.warning("command agent severely impaired, loaded without documentation rag tool")
+    logging.warning("command agent trying his best, loaded without documentation rag tool")
 
 command_agent = create_react_agent(
     model=llm,
     tools=tools,
     prompt=make_system_prompt("""
-        You are an agent that resolves cloud security vulnerabilities by suggesting aws cli commands to run in the terminal.
-        If there are no issues with the cloud resources, just say "No vulnerabilities were detected".
-        Explain each step of the solution and keep it simple.
-        If you are unsure about how to fix any issues with terminal commands, use your tool to search aws cli documentation for relevant information, DO NOT MAKE UP COMMANDS.
-        DO NOT ASK QUESTIONS.
+        You are an automated agent that diagnoses and fixes cloud security vulnerabilities.
+        Your output must always be a clear, concise, step-by-step remediation guide that includes
+        the exact terminal commands required to resolve the detected issues.
+
+        If no vulnerabilities are found, output only: 'No vulnerabilities were detected.'
+
+        For each vulnerability:
+        - Describe the issue briefly.
+        - Provide a numbered sequence of steps.
+        - Explain why each step is needed in simple terms.
+        - Include the exact terminal commands that the user should run.
+
+        If you are uncertain about any command or remediation detail, you must use the provided
+        tool to search the official AWS CLI documentation. Never invent commands.
+
+        Do not ask the user questions. Assume all information needed is already available.
+        Do not include anything unrelated to resolving the vulnerabilities.
     """),
 )
 
