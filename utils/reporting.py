@@ -1,7 +1,6 @@
 import os
 import re
 from typing import Optional
-import requests
 
 from datetime import datetime
 from langchain_core.messages import AIMessage, ToolMessage
@@ -85,20 +84,11 @@ def generate_report(remediation_start: datetime, messages: list[MessagesState], 
     extension = os.path.splitext(filename)[1]
     patched_filename = f"{base_name}_patched{extension}"
 
-
-    patched_content = None
-    with open(f"tmp/{patched_filename}", "r") as f:
-         patched_content = f.read()
-
-    # Analyze changes between original and patched content
-    changes_summary = analyze_changes(filename, patched_filename)
-
     # Find first and last tool call message
     original_validation_output = str(tool_messages[0].content)
-    validation_output = str(tool_messages[-1].content)
+    validation_output = "" if len(tool_messages) == 1 else str(tool_messages[-1].content)
 
     original_test_summary = parse_validation_output(original_validation_output)
-    patched_test_summary = parse_validation_output(validation_output)
 
     violations_detected = original_validation_output.count("FAIL") if "FAIL" in original_validation_output else 0
     violated_policies = [line.split("-")[-1] for line in original_validation_output.split("\n")[:-3]]
@@ -106,6 +96,20 @@ def generate_report(remediation_start: datetime, messages: list[MessagesState], 
     # Track timing
     remediation_end = datetime.now()
     total_duration = (remediation_end - remediation_start).total_seconds()
+
+    patched_content = "No patch was generated"
+    patched_test_summary = None
+    changes_summary = {
+        "total_changes": 0,
+        "changes_detail": None
+    }
+    if violations_detected and os.path.exists(f"tmp/{patched_filename}"):
+        # Analyze changes between original and patched content
+        changes_summary = analyze_changes(filename, patched_filename)
+
+        patched_test_summary = parse_validation_output(validation_output)
+        with open(f"tmp/{patched_filename}", "r") as f:
+             patched_content = f.read()
 
     # Create approval request
     approval_data = {

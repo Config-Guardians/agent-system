@@ -147,12 +147,12 @@ try:
                         pr_body = create_pr_body(approval_data)
                         create_remediation_pr(remediation_patch_path, file['path'], file['repository_full_name'], pr_body=pr_body)
 
-                    res = requests.post(f'{hachiware_endpoint}/api/report', 
-                        json={ "data": { "attributes": approval_data }}, 
-                        headers={"Content-Type": "application/vnd.api+json"}
-                    )
-                    if res.status_code >= 400:
-                        print(res.json())
+                        res = requests.post(f'{hachiware_endpoint}/api/report', 
+                            json={ "data": { "attributes": approval_data }}, 
+                            headers={"Content-Type": "application/vnd.api+json"}
+                        )
+                        if res.status_code >= 400:
+                            print(res.json())
 
                 case case if case.startswith("aws"):
                     contents = data["data"]
