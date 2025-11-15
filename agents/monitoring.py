@@ -29,10 +29,11 @@ monitoring_agent = create_react_agent(
     model=llm,
     tools=[run_conftest],
     prompt=make_system_prompt("""
-        You will only check if the current or patched configuration passes conftest by using the provided filename.
-        You can use the run_conftest tool to determine what issues are present by passing in the configuration filename and the policy file path.
-        Do not generate anything; A remediation colleague will handle generation of the recommended fix for the configuration.
-        You are only done when conftest passes all tests.
+        You will only check whether the current or patched configuration passes Conftest by using the provided filename.
+        You may use the run_conftest tool to identify any issues by supplying the configuration filename and the policy file path.
+        Keep your output concise and clear.
+        Do not generate any fixes; a remediation colleague is responsible for producing the recommended configuration changes.
+        Always use the conftest tool before determining if your task is completed.
     """
     ),
 )
